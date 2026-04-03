@@ -144,6 +144,7 @@ const (
 	TestOS  = "test"
 	Trusty  = "trusty"
 	Windows = "windows"
+	Xtratum = "xtratum"
 
 	// These are VM types, but we put them here to prevent string duplication.
 	GVisor  = "gvisor"
@@ -188,6 +189,21 @@ func GetEx(OS, arch string, clang bool) *Target {
 }
 
 var List = map[string]map[string]*Target{
+	Xtratum: {
+		ARM: {
+			PtrSize:          4,
+			PageSize:         4 << 10,
+			CFlags:           []string{"-marm", "-static"},
+			Triple:           "arm-linux-gnueabi",
+			KernelArch:       "arm",
+			KernelHeaderArch: "arm",
+			osCommon: osCommon{
+				SyscallNumbers:         true,
+				SyscallPrefix:          "X",
+				ExecutorUsesForkServer: false,
+			},
+		},
+	},
 	TestOS: {
 		TestArch64: {
 			PtrSize:  8,
@@ -497,6 +513,12 @@ var List = map[string]map[string]*Target{
 }
 
 var oses = map[string]osCommon{
+	Xtratum: {
+		SyscallNumbers:         true,
+		SyscallPrefix:          "__NR_",
+		ExecutorUsesForkServer: false,
+		KernelObject:           "xng.armv7a-vmsa-tz.bin",
+	},
 	Linux: {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "__NR_",

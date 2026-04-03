@@ -8,9 +8,9 @@
 
 // Ensure the included flatbuffers.h is the same version as when this file was
 // generated, otherwise it may not be compatible.
-static_assert(FLATBUFFERS_VERSION_MAJOR == 23 &&
-              FLATBUFFERS_VERSION_MINOR == 5 &&
-              FLATBUFFERS_VERSION_REVISION == 26,
+static_assert(FLATBUFFERS_VERSION_MAJOR == 25 &&
+              FLATBUFFERS_VERSION_MINOR == 12 &&
+              FLATBUFFERS_VERSION_REVISION == 19,
              "Non-compatible flatbuffers version included");
 
 namespace rpc {
@@ -366,8 +366,10 @@ struct HostMessagesRawUnion {
   }
 };
 
-bool VerifyHostMessagesRaw(::flatbuffers::Verifier &verifier, const void *obj, HostMessagesRaw type);
-bool VerifyHostMessagesRawVector(::flatbuffers::Verifier &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<HostMessagesRaw> *types);
+template <bool B = false>
+bool VerifyHostMessagesRaw(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, HostMessagesRaw type);
+template <bool B = false>
+bool VerifyHostMessagesRawVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<HostMessagesRaw> *types);
 
 enum class ExecutorMessagesRaw : uint8_t {
   NONE = 0,
@@ -493,8 +495,10 @@ struct ExecutorMessagesRawUnion {
   }
 };
 
-bool VerifyExecutorMessagesRaw(::flatbuffers::Verifier &verifier, const void *obj, ExecutorMessagesRaw type);
-bool VerifyExecutorMessagesRawVector(::flatbuffers::Verifier &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<ExecutorMessagesRaw> *types);
+template <bool B = false>
+bool VerifyExecutorMessagesRaw(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, ExecutorMessagesRaw type);
+template <bool B = false>
+bool VerifyExecutorMessagesRawVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<ExecutorMessagesRaw> *types);
 
 enum class RequestType : uint64_t {
   Program = 0,
@@ -873,7 +877,8 @@ struct ConnectHelloRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint64_t cookie() const {
     return GetField<uint64_t>(VT_COOKIE, 0);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_COOKIE, 8) &&
            verifier.EndTable();
@@ -945,7 +950,8 @@ struct ConnectRequestRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table 
   const ::flatbuffers::String *syz_revision() const {
     return GetPointer<const ::flatbuffers::String *>(VT_SYZ_REVISION);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_COOKIE, 8) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
@@ -1098,7 +1104,8 @@ struct ConnectReplyRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *files() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_FILES);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_DEBUG, 1) &&
            VerifyField<uint8_t>(verifier, VT_COVER, 1) &&
@@ -1269,7 +1276,8 @@ struct InfoRequestRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<::flatbuffers::Offset<rpc::FileInfoRaw>> *files() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<rpc::FileInfoRaw>> *>(VT_FILES);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_ERROR) &&
            verifier.VerifyString(error()) &&
@@ -1353,7 +1361,8 @@ struct InfoReplyRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<uint64_t> *cover_filter() const {
     return GetPointer<const ::flatbuffers::Vector<uint64_t> *>(VT_COVER_FILTER);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_COVER_FILTER) &&
            verifier.VerifyVector(cover_filter()) &&
@@ -1430,7 +1439,8 @@ struct FileInfoRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<uint8_t> *data() const {
     return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_DATA);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
@@ -1525,7 +1535,8 @@ struct GlobInfoRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *files() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_FILES);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
@@ -1608,7 +1619,8 @@ struct FeatureInfoRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::String *reason() const {
     return GetPointer<const ::flatbuffers::String *>(VT_REASON);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_ID, 8) &&
            VerifyField<uint8_t>(verifier, VT_NEED_SETUP, 1) &&
@@ -1703,7 +1715,8 @@ struct HostMessageRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const rpc::StateRequestRaw *msg_as_StateRequest() const {
     return msg_type() == rpc::HostMessagesRaw::StateRequest ? static_cast<const rpc::StateRequestRaw *>(msg()) : nullptr;
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MSG_TYPE, 1) &&
            VerifyOffset(verifier, VT_MSG) &&
@@ -1792,7 +1805,8 @@ struct ExecutorMessageRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
   const rpc::StateResultRaw *msg_as_State() const {
     return msg_type() == rpc::ExecutorMessagesRaw::State ? static_cast<const rpc::StateResultRaw *>(msg()) : nullptr;
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_MSG_TYPE, 1) &&
            VerifyOffset(verifier, VT_MSG) &&
@@ -1897,7 +1911,8 @@ struct ExecRequestRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<int32_t> *all_signal() const {
     return GetPointer<const ::flatbuffers::Vector<int32_t> *>(VT_ALL_SIGNAL);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
            VerifyField<uint64_t>(verifier, VT_TYPE, 8) &&
@@ -2009,7 +2024,8 @@ struct SignalUpdateRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<uint64_t> *new_max() const {
     return GetPointer<const ::flatbuffers::Vector<uint64_t> *>(VT_NEW_MAX);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NEW_MAX) &&
            verifier.VerifyVector(new_max()) &&
@@ -2064,7 +2080,8 @@ struct CorpusTriagedRawT : public ::flatbuffers::NativeTable {
 struct CorpusTriagedRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef CorpusTriagedRawT NativeTableType;
   typedef CorpusTriagedRawBuilder Builder;
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
@@ -2103,7 +2120,8 @@ struct StateRequestRawT : public ::flatbuffers::NativeTable {
 struct StateRequestRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef StateRequestRawT NativeTableType;
   typedef StateRequestRawBuilder Builder;
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
@@ -2164,7 +2182,8 @@ struct ExecutingMessageRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   int64_t wait_duration() const {
     return GetField<int64_t>(VT_WAIT_DURATION, 0);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
            VerifyField<int32_t>(verifier, VT_PROC_ID, 4) &&
@@ -2254,7 +2273,8 @@ struct CallInfoRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<const rpc::ComparisonRaw *> *comps() const {
     return GetPointer<const ::flatbuffers::Vector<const rpc::ComparisonRaw *> *>(VT_COMPS);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_FLAGS, 1) &&
            VerifyField<int32_t>(verifier, VT_ERROR, 4) &&
@@ -2376,7 +2396,8 @@ struct ProgInfoRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint64_t freshness() const {
     return GetField<uint64_t>(VT_FRESHNESS, 0);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_CALLS) &&
            verifier.VerifyVector(calls()) &&
@@ -2504,7 +2525,8 @@ struct ExecResultRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const rpc::ProgInfoRaw *info() const {
     return GetPointer<const rpc::ProgInfoRaw *>(VT_INFO);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int64_t>(verifier, VT_ID, 8) &&
            VerifyField<int32_t>(verifier, VT_PROC, 4) &&
@@ -2609,7 +2631,8 @@ struct StateResultRaw FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<uint8_t> *data() const {
     return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_DATA);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyVector(data()) &&
@@ -2681,7 +2704,8 @@ struct SnapshotHeader FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint32_t output_size() const {
     return GetField<uint32_t>(VT_OUTPUT_SIZE, 0);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_STATE, 8) &&
            VerifyField<uint32_t>(verifier, VT_OUTPUT_OFFSET, 4) &&
@@ -2780,7 +2804,8 @@ struct SnapshotHandshake FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table 
   int64_t sandbox_arg() const {
     return GetField<int64_t>(VT_SANDBOX_ARG, 0);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_COVER_EDGES, 1) &&
            VerifyField<uint8_t>(verifier, VT_KERNEL_64_BIT, 1) &&
@@ -2894,7 +2919,8 @@ struct SnapshotRequest FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<uint8_t> *prog_data() const {
     return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_PROG_DATA);
   }
-  bool Verify(::flatbuffers::Verifier &verifier) const {
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint64_t>(verifier, VT_EXEC_FLAGS, 8) &&
            VerifyField<int32_t>(verifier, VT_NUM_CALLS, 4) &&
@@ -2986,11 +3012,11 @@ inline void ConnectHelloRaw::UnPackTo(ConnectHelloRawT *_o, const ::flatbuffers:
   { auto _e = cookie(); _o->cookie = _e; }
 }
 
-inline ::flatbuffers::Offset<ConnectHelloRaw> ConnectHelloRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateConnectHelloRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ConnectHelloRaw> CreateConnectHelloRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ConnectHelloRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ConnectHelloRaw> CreateConnectHelloRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ConnectHelloRaw> ConnectHelloRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectHelloRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ConnectHelloRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3016,11 +3042,11 @@ inline void ConnectRequestRaw::UnPackTo(ConnectRequestRawT *_o, const ::flatbuff
   { auto _e = syz_revision(); if (_e) _o->syz_revision = _e->str(); }
 }
 
-inline ::flatbuffers::Offset<ConnectRequestRaw> ConnectRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateConnectRequestRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ConnectRequestRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ConnectRequestRaw> CreateConnectRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ConnectRequestRaw> ConnectRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ConnectRequestRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3061,11 +3087,11 @@ inline void ConnectReplyRaw::UnPackTo(ConnectReplyRawT *_o, const ::flatbuffers:
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = _e->Get(_i)->str(); } } else { _o->files.resize(0); } }
 }
 
-inline ::flatbuffers::Offset<ConnectReplyRaw> ConnectReplyRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateConnectReplyRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ConnectReplyRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ConnectReplyRaw> CreateConnectReplyRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ConnectReplyRaw> ConnectReplyRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ConnectReplyRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ConnectReplyRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3122,15 +3148,15 @@ inline void InfoRequestRaw::UnPackTo(InfoRequestRawT *_o, const ::flatbuffers::r
   (void)_o;
   (void)_resolver;
   { auto _e = error(); if (_e) _o->error = _e->str(); }
-  { auto _e = features(); if (_e) { _o->features.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->features[_i]) { _e->Get(_i)->UnPackTo(_o->features[_i].get(), _resolver); } else { _o->features[_i] = std::unique_ptr<rpc::FeatureInfoRawT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->features.resize(0); } }
-  { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->files[_i]) { _e->Get(_i)->UnPackTo(_o->files[_i].get(), _resolver); } else { _o->files[_i] = std::unique_ptr<rpc::FileInfoRawT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->files.resize(0); } }
-}
-
-inline ::flatbuffers::Offset<InfoRequestRaw> InfoRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateInfoRequestRaw(_fbb, _o, _rehasher);
+  { auto _e = features(); if (_e) { _o->features.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->features[_i]) { _e->Get(_i)->UnPackTo(_o->features[_i].get(), _resolver); } else { _o->features[_i] = std::unique_ptr<rpc::FeatureInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->features.resize(0); } }
+  { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->files[_i]) { _e->Get(_i)->UnPackTo(_o->files[_i].get(), _resolver); } else { _o->files[_i] = std::unique_ptr<rpc::FileInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->files.resize(0); } }
 }
 
 inline ::flatbuffers::Offset<InfoRequestRaw> CreateInfoRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return InfoRequestRaw::Pack(_fbb, _o, _rehasher);
+}
+
+inline ::flatbuffers::Offset<InfoRequestRaw> InfoRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const InfoRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const InfoRequestRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3156,11 +3182,11 @@ inline void InfoReplyRaw::UnPackTo(InfoReplyRawT *_o, const ::flatbuffers::resol
   { auto _e = cover_filter(); if (_e) { _o->cover_filter.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->cover_filter[_i] = _e->Get(_i); } } else { _o->cover_filter.resize(0); } }
 }
 
-inline ::flatbuffers::Offset<InfoReplyRaw> InfoReplyRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateInfoReplyRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(::flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return InfoReplyRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<InfoReplyRaw> CreateInfoReplyRaw(::flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<InfoReplyRaw> InfoReplyRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const InfoReplyRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const InfoReplyRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3185,11 +3211,11 @@ inline void FileInfoRaw::UnPackTo(FileInfoRawT *_o, const ::flatbuffers::resolve
   { auto _e = data(); if (_e) { _o->data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->data.begin()); } }
 }
 
-inline ::flatbuffers::Offset<FileInfoRaw> FileInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFileInfoRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<FileInfoRaw> CreateFileInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return FileInfoRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<FileInfoRaw> CreateFileInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<FileInfoRaw> FileInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FileInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FileInfoRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3218,11 +3244,11 @@ inline void GlobInfoRaw::UnPackTo(GlobInfoRawT *_o, const ::flatbuffers::resolve
   { auto _e = files(); if (_e) { _o->files.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->files[_i] = _e->Get(_i)->str(); } } else { _o->files.resize(0); } }
 }
 
-inline ::flatbuffers::Offset<GlobInfoRaw> GlobInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateGlobInfoRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<GlobInfoRaw> CreateGlobInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return GlobInfoRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<GlobInfoRaw> CreateGlobInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<GlobInfoRaw> GlobInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const GlobInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const GlobInfoRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3248,11 +3274,11 @@ inline void FeatureInfoRaw::UnPackTo(FeatureInfoRawT *_o, const ::flatbuffers::r
   { auto _e = reason(); if (_e) _o->reason = _e->str(); }
 }
 
-inline ::flatbuffers::Offset<FeatureInfoRaw> FeatureInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFeatureInfoRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<FeatureInfoRaw> CreateFeatureInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return FeatureInfoRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<FeatureInfoRaw> CreateFeatureInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<FeatureInfoRaw> FeatureInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const FeatureInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const FeatureInfoRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3279,11 +3305,11 @@ inline void HostMessageRaw::UnPackTo(HostMessageRawT *_o, const ::flatbuffers::r
   { auto _e = msg(); if (_e) _o->msg.value = rpc::HostMessagesRawUnion::UnPack(_e, msg_type(), _resolver); }
 }
 
-inline ::flatbuffers::Offset<HostMessageRaw> HostMessageRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateHostMessageRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<HostMessageRaw> CreateHostMessageRaw(::flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return HostMessageRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<HostMessageRaw> CreateHostMessageRaw(::flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<HostMessageRaw> HostMessageRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const HostMessageRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const HostMessageRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3308,11 +3334,11 @@ inline void ExecutorMessageRaw::UnPackTo(ExecutorMessageRawT *_o, const ::flatbu
   { auto _e = msg(); if (_e) _o->msg.value = rpc::ExecutorMessagesRawUnion::UnPack(_e, msg_type(), _resolver); }
 }
 
-inline ::flatbuffers::Offset<ExecutorMessageRaw> ExecutorMessageRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecutorMessageRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ExecutorMessageRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ExecutorMessageRaw> CreateExecutorMessageRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ExecutorMessageRaw> ExecutorMessageRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutorMessageRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ExecutorMessageRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3363,11 +3389,11 @@ inline void ExecRequestRaw::UnPackTo(ExecRequestRawT *_o, const ::flatbuffers::r
   { auto _e = all_signal(); if (_e) { _o->all_signal.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->all_signal[_i] = _e->Get(_i); } } else { _o->all_signal.resize(0); } }
 }
 
-inline ::flatbuffers::Offset<ExecRequestRaw> ExecRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecRequestRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ExecRequestRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ExecRequestRaw> CreateExecRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ExecRequestRaw> ExecRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ExecRequestRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3401,11 +3427,11 @@ inline void SignalUpdateRaw::UnPackTo(SignalUpdateRawT *_o, const ::flatbuffers:
   { auto _e = new_max(); if (_e) { _o->new_max.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->new_max[_i] = _e->Get(_i); } } else { _o->new_max.resize(0); } }
 }
 
-inline ::flatbuffers::Offset<SignalUpdateRaw> SignalUpdateRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateSignalUpdateRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(::flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return SignalUpdateRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<SignalUpdateRaw> CreateSignalUpdateRaw(::flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<SignalUpdateRaw> SignalUpdateRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SignalUpdateRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const SignalUpdateRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3426,11 +3452,11 @@ inline void CorpusTriagedRaw::UnPackTo(CorpusTriagedRawT *_o, const ::flatbuffer
   (void)_resolver;
 }
 
-inline ::flatbuffers::Offset<CorpusTriagedRaw> CorpusTriagedRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateCorpusTriagedRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<CorpusTriagedRaw> CreateCorpusTriagedRaw(::flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return CorpusTriagedRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<CorpusTriagedRaw> CreateCorpusTriagedRaw(::flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<CorpusTriagedRaw> CorpusTriagedRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const CorpusTriagedRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const CorpusTriagedRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3449,11 +3475,11 @@ inline void StateRequestRaw::UnPackTo(StateRequestRawT *_o, const ::flatbuffers:
   (void)_resolver;
 }
 
-inline ::flatbuffers::Offset<StateRequestRaw> StateRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateStateRequestRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<StateRequestRaw> CreateStateRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return StateRequestRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<StateRequestRaw> CreateStateRequestRaw(::flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<StateRequestRaw> StateRequestRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const StateRequestRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const StateRequestRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3476,11 +3502,11 @@ inline void ExecutingMessageRaw::UnPackTo(ExecutingMessageRawT *_o, const ::flat
   { auto _e = wait_duration(); _o->wait_duration = _e; }
 }
 
-inline ::flatbuffers::Offset<ExecutingMessageRaw> ExecutingMessageRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecutingMessageRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ExecutingMessageRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ExecutingMessageRaw> CreateExecutingMessageRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ExecutingMessageRaw> ExecutingMessageRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecutingMessageRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ExecutingMessageRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3512,11 +3538,11 @@ inline void CallInfoRaw::UnPackTo(CallInfoRawT *_o, const ::flatbuffers::resolve
   { auto _e = comps(); if (_e) { _o->comps.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->comps[_i] = *_e->Get(_i); } } else { _o->comps.resize(0); } }
 }
 
-inline ::flatbuffers::Offset<CallInfoRaw> CallInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateCallInfoRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<CallInfoRaw> CreateCallInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return CallInfoRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<CallInfoRaw> CreateCallInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<CallInfoRaw> CallInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const CallInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const CallInfoRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3562,18 +3588,18 @@ inline ProgInfoRawT *ProgInfoRaw::UnPack(const ::flatbuffers::resolver_function_
 inline void ProgInfoRaw::UnPackTo(ProgInfoRawT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = calls(); if (_e) { _o->calls.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->calls[_i]) { _e->Get(_i)->UnPackTo(_o->calls[_i].get(), _resolver); } else { _o->calls[_i] = std::unique_ptr<rpc::CallInfoRawT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->calls.resize(0); } }
-  { auto _e = extra_raw(); if (_e) { _o->extra_raw.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->extra_raw[_i]) { _e->Get(_i)->UnPackTo(_o->extra_raw[_i].get(), _resolver); } else { _o->extra_raw[_i] = std::unique_ptr<rpc::CallInfoRawT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->extra_raw.resize(0); } }
+  { auto _e = calls(); if (_e) { _o->calls.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->calls[_i]) { _e->Get(_i)->UnPackTo(_o->calls[_i].get(), _resolver); } else { _o->calls[_i] = std::unique_ptr<rpc::CallInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->calls.resize(0); } }
+  { auto _e = extra_raw(); if (_e) { _o->extra_raw.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->extra_raw[_i]) { _e->Get(_i)->UnPackTo(_o->extra_raw[_i].get(), _resolver); } else { _o->extra_raw[_i] = std::unique_ptr<rpc::CallInfoRawT>(_e->Get(_i)->UnPack(_resolver)); } } } else { _o->extra_raw.resize(0); } }
   { auto _e = extra(); if (_e) { if(_o->extra) { _e->UnPackTo(_o->extra.get(), _resolver); } else { _o->extra = std::unique_ptr<rpc::CallInfoRawT>(_e->UnPack(_resolver)); } } else if (_o->extra) { _o->extra.reset(); } }
   { auto _e = elapsed(); _o->elapsed = _e; }
   { auto _e = freshness(); _o->freshness = _e; }
 }
 
-inline ::flatbuffers::Offset<ProgInfoRaw> ProgInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateProgInfoRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ProgInfoRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ProgInfoRaw> CreateProgInfoRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ProgInfoRaw> ProgInfoRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ProgInfoRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ProgInfoRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3627,11 +3653,11 @@ inline void ExecResultRaw::UnPackTo(ExecResultRawT *_o, const ::flatbuffers::res
   { auto _e = info(); if (_e) { if(_o->info) { _e->UnPackTo(_o->info.get(), _resolver); } else { _o->info = std::unique_ptr<rpc::ProgInfoRawT>(_e->UnPack(_resolver)); } } else if (_o->info) { _o->info.reset(); } }
 }
 
-inline ::flatbuffers::Offset<ExecResultRaw> ExecResultRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateExecResultRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return ExecResultRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<ExecResultRaw> CreateExecResultRaw(::flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<ExecResultRaw> ExecResultRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ExecResultRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const ExecResultRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3663,11 +3689,11 @@ inline void StateResultRaw::UnPackTo(StateResultRawT *_o, const ::flatbuffers::r
   { auto _e = data(); if (_e) { _o->data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->data.begin()); } }
 }
 
-inline ::flatbuffers::Offset<StateResultRaw> StateResultRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateStateResultRaw(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<StateResultRaw> CreateStateResultRaw(::flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return StateResultRaw::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<StateResultRaw> CreateStateResultRaw(::flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<StateResultRaw> StateResultRaw::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const StateResultRawT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const StateResultRawT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3691,11 +3717,11 @@ inline void SnapshotHeader::UnPackTo(SnapshotHeaderT *_o, const ::flatbuffers::r
   { auto _e = output_size(); _o->output_size = _e; }
 }
 
-inline ::flatbuffers::Offset<SnapshotHeader> SnapshotHeader::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateSnapshotHeader(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<SnapshotHeader> CreateSnapshotHeader(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return SnapshotHeader::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<SnapshotHeader> CreateSnapshotHeader(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<SnapshotHeader> SnapshotHeader::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHeaderT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const SnapshotHeaderT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3728,11 +3754,11 @@ inline void SnapshotHandshake::UnPackTo(SnapshotHandshakeT *_o, const ::flatbuff
   { auto _e = sandbox_arg(); _o->sandbox_arg = _e; }
 }
 
-inline ::flatbuffers::Offset<SnapshotHandshake> SnapshotHandshake::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateSnapshotHandshake(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<SnapshotHandshake> CreateSnapshotHandshake(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return SnapshotHandshake::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<SnapshotHandshake> CreateSnapshotHandshake(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<SnapshotHandshake> SnapshotHandshake::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotHandshakeT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const SnapshotHandshakeT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3772,11 +3798,11 @@ inline void SnapshotRequest::UnPackTo(SnapshotRequestT *_o, const ::flatbuffers:
   { auto _e = prog_data(); if (_e) { _o->prog_data.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->prog_data.begin()); } }
 }
 
-inline ::flatbuffers::Offset<SnapshotRequest> SnapshotRequest::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateSnapshotRequest(_fbb, _o, _rehasher);
+inline ::flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequest(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return SnapshotRequest::Pack(_fbb, _o, _rehasher);
 }
 
-inline ::flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequest(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+inline ::flatbuffers::Offset<SnapshotRequest> SnapshotRequest::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const SnapshotRequestT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const SnapshotRequestT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
@@ -3794,7 +3820,8 @@ inline ::flatbuffers::Offset<SnapshotRequest> CreateSnapshotRequest(::flatbuffer
       _prog_data);
 }
 
-inline bool VerifyHostMessagesRaw(::flatbuffers::Verifier &verifier, const void *obj, HostMessagesRaw type) {
+template <bool B>
+inline bool VerifyHostMessagesRaw(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, HostMessagesRaw type) {
   switch (type) {
     case HostMessagesRaw::NONE: {
       return true;
@@ -3819,7 +3846,8 @@ inline bool VerifyHostMessagesRaw(::flatbuffers::Verifier &verifier, const void 
   }
 }
 
-inline bool VerifyHostMessagesRawVector(::flatbuffers::Verifier &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<HostMessagesRaw> *types) {
+template <bool B>
+inline bool VerifyHostMessagesRawVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<HostMessagesRaw> *types) {
   if (!values || !types) return !values && !types;
   if (values->size() != types->size()) return false;
   for (::flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
@@ -3928,7 +3956,8 @@ inline void HostMessagesRawUnion::Reset() {
   type = HostMessagesRaw::NONE;
 }
 
-inline bool VerifyExecutorMessagesRaw(::flatbuffers::Verifier &verifier, const void *obj, ExecutorMessagesRaw type) {
+template <bool B>
+inline bool VerifyExecutorMessagesRaw(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, ExecutorMessagesRaw type) {
   switch (type) {
     case ExecutorMessagesRaw::NONE: {
       return true;
@@ -3949,7 +3978,8 @@ inline bool VerifyExecutorMessagesRaw(::flatbuffers::Verifier &verifier, const v
   }
 }
 
-inline bool VerifyExecutorMessagesRawVector(::flatbuffers::Verifier &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<ExecutorMessagesRaw> *types) {
+template <bool B>
+inline bool VerifyExecutorMessagesRawVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<ExecutorMessagesRaw> *types) {
   if (!values || !types) return !values && !types;
   if (values->size() != types->size()) return false;
   for (::flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
