@@ -193,10 +193,15 @@ var List = map[string]map[string]*Target{
 		ARM: {
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-marm", "-static"},
+			// CFlags:           []string{"-marm", "-static", "-Wno-unused-function"},
+			CFlags:           []string{"-static", "-Wno-unused-function"},
 			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
+			CCompiler:		  "gcc",
+			CxxCompiler:	  "g++",
+			// CCompiler:		  "armv7l-unknown-linux-gnueabihf-gcc",
+			// CxxCompiler:	  "armv7l-unknown-linux-gnueabihf-g++",
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "X",
@@ -518,6 +523,7 @@ var oses = map[string]osCommon{
 		SyscallPrefix:          "__NR_",
 		ExecutorUsesForkServer: false,
 		KernelObject:           "xng.armv7a-vmsa-tz.bin",
+		BuildOS:				Linux,
 	},
 	Linux: {
 		SyscallNumbers:         true,

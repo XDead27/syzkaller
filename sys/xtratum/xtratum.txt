@@ -1,4 +1,9 @@
 meta noextract
 meta arches["arm"]
 
+resource xPartitionId[int32]: 0xffffffffffffffff
+
+XGetMyPartitionId(partitionId ptr[out, xPartitionId])
+XHaltPartition(partitionId xPartitionId)
+
 XWriteConsole(buf buffer[in], count len[buf])

@@ -2,9 +2,12 @@ package xtratum
 
 import (
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 func InitTarget(target *prog.Target) {
-	target.MakeDataMmap = targets.MakeSyzMmap(target)
+	// xtratum descriptions currently don't define syz_mmap/mmap, and data mapping
+	// is handled by executor os_init. So don't emit any data-mmap calls.
+	target.MakeDataMmap = func() []*prog.Call {
+		return nil
+	}
 }

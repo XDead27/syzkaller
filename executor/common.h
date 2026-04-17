@@ -161,7 +161,7 @@ static void install_segv_handler(void)
 #endif
 #endif
 
-#if !GOOS_linux
+#if !GOOS_linux && !GOOS_xtratum
 #if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <signal.h>
 #include <sys/types.h>
@@ -310,7 +310,7 @@ static void __attribute__((noinline)) remove_dir(const char* dir)
 #endif
 #endif
 
-#if !GOOS_linux && !GOOS_netbsd
+#if !GOOS_linux && !GOOS_xtratum && !GOOS_netbsd
 #if SYZ_EXECUTOR || SYZ_FAULT
 static int inject_fault(int nth)
 {
@@ -486,7 +486,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #include "common_openbsd.h"
 #elif GOOS_fuchsia
 #include "common_fuchsia.h"
-#elif GOOS_linux
+#elif GOOS_linux || GOOS_xtratum
 #include "common_linux.h"
 #elif GOOS_test
 #include "common_test.h"
@@ -595,7 +595,7 @@ static void loop(void)
 #if SYZ_EXECUTOR || SYZ_REPEAT
 static void execute_one(void);
 
-#if GOOS_linux
+#if GOOS_linux || GOOS_xtratum
 #define WAIT_FLAGS __WALL
 #else
 #define WAIT_FLAGS 0
