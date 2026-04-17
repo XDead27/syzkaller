@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <cstdint>
 
 #include "sut_backend.h"
 
@@ -16,7 +17,7 @@ public:
 		return true;
 	}
 
-	bool BeginProgram(uint64_t req_id, uint64_t proc_id) override
+	bool BeginProgram(ull req_id, ull proc_id) override
 	{
 		(void)req_id;
 		(void)proc_id;
@@ -28,17 +29,17 @@ public:
 		return true;
 	}
 
-	bool CopyIn(char* addr, const uint8_t* data, uint64_t size) override
+	bool CopyIn(char* addr, const uint8_t* data, ull size) override
 	{
 		return NONFAILING(memcpy(addr, data, size));
 	}
 
-	bool CopyOut(char* addr, uint64_t size, uint64_t* value) override
+	bool CopyOut(char* addr, ull size, ull* value) override
 	{
 		return NONFAILING(copyout(addr, size, value));
 	}
 
-	bool Syscall(const call_t* call, intptr_t* args, intptr_t* ret, int* err_no) override
+	bool Syscall(const call_t* call, intptr_t* args, intptr_t* ret, uint32_t* err_no) override
 	{
 		// For pseudo-syscalls and user-space functions NONFAILING can abort before assigning return value.
 		*ret = -1;
@@ -49,7 +50,7 @@ public:
 	}
 
 private:
-	void copyout(char* addr, uint64_t size, uint64_t* value)
+	void copyout(char* addr, ull size, ull* value)
 	{
 		switch (size) {
 		    case 1:
@@ -62,7 +63,7 @@ private:
 			    *value = *(uint32_t*)addr;
 			    break;
 		    case 8:
-			    *value = *(uint64_t*)addr;
+			    *value = *(ull*)addr;
 			    break;
 		    default:
 			    failmsg("copyout: bad argument size", "size=%llu", size);

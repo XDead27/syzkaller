@@ -520,9 +520,36 @@ static void mmap_input();
 #include "executor_windows.h"
 #elif GOOS_test
 #include "executor_test.h"
+#elif GOOS_xtratum
+#include "executor_xtratum.h"
 #else
 #error "unknown OS"
 #endif
+
+#include "sut_backend_local.h"
+
+static std::optional<LocalSutBackend> local_sut_backend;
+static SutBackend* sut_backend;
+
+static void init_sut_backend()
+{
+	local_sut_backend.emplace();
+	sut_backend = &*local_sut_backend;
+	if (!sut_backend->Init())
+		fail("failed to initialize SUT backend");
+}
+
+static void begin_sut_program()
+{
+	if (!sut_backend->BeginProgram(request_id, procid))
+		fail("failed to begin SUT program");
+}
+
+static void end_sut_program()
+{
+	if (!sut_backend->EndProgram())
+		fail("failed to end SUT program");
+}
 
 class CoverAccessScope final
 {
@@ -611,6 +638,7 @@ int main(int argc, char** argv)
 	use_temporary_dir();
 	install_segv_handler();
 	current_thread = &threads[0];
+	init_sut_backend();
 
 	if (argc > 2 && strcmp(argv[2], "snapshot") == 0) {
 		SnapshotSetup(argv, argc);
@@ -941,6 +969,7 @@ void execute_one()
 		failmsg("bad request type", "type=%llu", (uint64)request_type);
 
 	in_execute_one = true;
+	begin_sut_program();
 #if GOOS_linux
 	char buf[64];
 	// Linux TASK_COMM_LEN is only 16, so the name needs to be compact.
@@ -1172,6 +1201,8 @@ void execute_one()
 			write_extra_output();
 		}
 	}
+
+	end_sut_program();
 }
 
 thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint8* pos, call_props_t call_props)
@@ -1563,9 +1594,11 @@ void execute_call(thread_t* th)
 	// For pseudo-syscalls and user-space functions NONFAILING can abort before assigning to th->res.
 	// Arrange for res = -1 and errno = EFAULT result for such case.
 	th->res = -1;
-	errno = EFAULT;
-	NONFAILING(th->res = execute_syscall(call, th->args));
-	th->reserrno = errno;
+	th->reserrno = EFAULT;
+	if (!sut_backend->Syscall(call, th->args, &th->res, &th->reserrno)) {
+		th->res = -1;
+		th->reserrno = EFAULT;
+	}
 	// Our pseudo-syscalls may misbehave.
 	if ((th->res == -1 && th->reserrno == 0) || call->attrs.ignore_return)
 		th->reserrno = EINVAL;
@@ -1700,23 +1733,7 @@ void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint6
 
 bool copyout(char* addr, uint64 size, uint64* res)
 {
-	return NONFAILING(
-	    switch (size) {
-		    case 1:
-			    *res = *(uint8*)addr;
-			    break;
-		    case 2:
-			    *res = *(uint16*)addr;
-			    break;
-		    case 4:
-			    *res = *(uint32*)addr;
-			    break;
-		    case 8:
-			    *res = *(uint64*)addr;
-			    break;
-		    default:
-			    failmsg("copyout: bad argument size", "size=%llu", size);
-	    });
+	return sut_backend->CopyOut(addr, size, res);
 }
 
 uint64 read_arg(uint8** input_posp)
