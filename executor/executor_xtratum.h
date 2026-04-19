@@ -26,20 +26,21 @@ static inline intptr_t xtratum_syscall_svc(intptr_t nr,
 					   intptr_t a0, intptr_t a1, intptr_t a2,
 					   intptr_t a3, intptr_t a4, intptr_t a5)
 {
-	register intptr_t r0 asm("r0") = a0;
-	register intptr_t r1 asm("r1") = a1;
-	register intptr_t r2 asm("r2") = a2;
-	register intptr_t r3 asm("r3") = a3;
-	register intptr_t r4 asm("r4") = a4;
-	register intptr_t r5 asm("r5") = a5;
-	register intptr_t r7 asm("r7") = nr;
-
-	asm volatile("svc #0"
-		     : "+r"(r0)
-		     : "r"(r1), "r"(r2), "r"(r3), "r"(r4), "r"(r5), "r"(r7)
-		     : "memory", "cc");
-
-	return r0;
+	// register intptr_t r0 asm("r0") = a0;
+	// register intptr_t r1 asm("r1") = a1;
+	// register intptr_t r2 asm("r2") = a2;
+	// register intptr_t r3 asm("r3") = a3;
+	// register intptr_t r4 asm("r4") = a4;
+	// register intptr_t r5 asm("r5") = a5;
+	// register intptr_t r7 asm("r7") = nr;
+	//
+	// asm volatile("svc #0"
+	// 	     : "+r"(r0)
+	// 	     : "r"(r1), "r"(r2), "r"(r3), "r"(r4), "r"(r5), "r"(r7)
+	// 	     : "memory", "cc");
+	//
+	// return r0;
+	return syscall(nr, a0, a1, a2, a3, a4, a5);
 }
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])

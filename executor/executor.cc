@@ -527,16 +527,79 @@ static void mmap_input();
 #endif
 
 #include "sut_backend_local.h"
+#include "sut_backend_remote.h"
 
 static std::optional<LocalSutBackend> local_sut_backend;
+static std::optional<RemoteSutBackend> remote_sut_backend;
 static SutBackend* sut_backend;
 
-static void init_sut_backend()
+static bool arg_equals(const char* arg, const char* prefix, const char* value)
 {
-	local_sut_backend.emplace();
-	sut_backend = &*local_sut_backend;
+	size_t size = strlen(prefix);
+	return strncmp(arg, prefix, size) == 0 && strcmp(arg + size, value) == 0;
+}
+
+static bool use_remote_sut_backend(int argc, char** argv)
+{
+	for (int i = 2; i < argc; i++) {
+		if (strcmp(argv[i], "--sut=remote") == 0)
+			return true;
+		if (arg_equals(argv[i], "--sut=", "remote"))
+			return true;
+	}
+	return false;
+}
+
+static const char* find_cmd_arg_value(int argc, char** argv, const char* key)
+{
+	for (int i = 2; i < argc; i++) {
+		size_t key_len = strlen(key);
+		if (strncmp(argv[i], key, key_len) == 0)
+			return argv[i] + key_len;
+	}
+	return nullptr;
+}
+
+static uint32 parse_cmd_arg_u32(int argc, char** argv, const char* key, uint32 default_value)
+{
+	const char* value = find_cmd_arg_value(argc, argv, key);
+	if (!value || !value[0])
+		return default_value;
+	char* end = nullptr;
+	unsigned long parsed = strtoul(value, &end, 10);
+	if (end == value || *end != '\0' || parsed > 0xfffffffful)
+		return default_value;
+	return static_cast<uint32>(parsed);
+}
+
+static int parse_cmd_arg_int(int argc, char** argv, const char* key, int default_value)
+{
+	const char* value = find_cmd_arg_value(argc, argv, key);
+	if (!value || !value[0])
+		return default_value;
+	char* end = nullptr;
+	long parsed = strtol(value, &end, 10);
+	if (end == value || *end != '\0')
+		return default_value;
+	return static_cast<int>(parsed);
+}
+
+static void init_sut_backend(int argc, char** argv)
+{
+	if (use_remote_sut_backend(argc, argv)) {
+		const char* endpoint = find_cmd_arg_value(argc, argv, "--sut_addr=");
+		uint32 timeout_ms = parse_cmd_arg_u32(argc, argv, "--sut_timeout_ms=", 200);
+		int retries = parse_cmd_arg_int(argc, argv, "--sut_retries=", 1);
+		remote_sut_backend.emplace();
+		remote_sut_backend->Configure(endpoint ? endpoint : "127.0.0.1:9001", timeout_ms, retries);
+		sut_backend = &*remote_sut_backend;
+	} else {
+		local_sut_backend.emplace();
+		sut_backend = &*local_sut_backend;
+	}
 	if (!sut_backend->Init())
 		fail("failed to initialize SUT backend");
+	fprintf(stderr, "[Executor] Using %s SUT backend\n", use_remote_sut_backend(argc, argv) ? "remote" : "local");
 }
 
 static void begin_sut_program()
@@ -613,6 +676,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	if (strcmp(argv[1], "runner") == 0) {
+		fprintf(stderr, "[Executor] Starting syz-executor runner\n");
 		runner(argv, argc);
 		fail("runner returned");
 	}
@@ -638,7 +702,7 @@ int main(int argc, char** argv)
 	use_temporary_dir();
 	install_segv_handler();
 	current_thread = &threads[0];
-	init_sut_backend();
+	init_sut_backend(argc, argv);
 
 	if (argc > 2 && strcmp(argv[2], "snapshot") == 0) {
 		SnapshotSetup(argv, argc);

@@ -170,6 +170,26 @@ func Complete(cfg *Config) error {
 	default:
 		return fmt.Errorf("config param sandbox must contain one of none/setuid/namespace/android")
 	}
+	if cfg.SUT == "" {
+		cfg.SUT = "local"
+	}
+	switch cfg.SUT {
+	case "local", "remote":
+	default:
+		return fmt.Errorf("config param sut must contain one of local/remote")
+	}
+	if cfg.SUT == "remote" {
+		if cfg.SUTAddr == "" {
+			cfg.SUTAddr = "127.0.0.1:9001"
+		}
+		if cfg.SUTTimeoutMs <= 0 {
+			cfg.SUTTimeoutMs = 200
+		}
+		if cfg.SUTRetries <= 0 {
+			cfg.SUTRetries = 1
+		}
+	}
+
 	if err := cfg.checkSSHParams(); err != nil {
 		return err
 	}

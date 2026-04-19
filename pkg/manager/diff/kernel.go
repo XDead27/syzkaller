@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -279,6 +280,10 @@ func (kc *kernelContext) runInstance(ctx context.Context, inst *vm.Instance,
 		return nil, fmt.Errorf("failed to parse manager's address")
 	}
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
+	runnerArgs := strings.Join(kc.cfg.ExecutorRunnerArgs(), " ")
+	if runnerArgs != "" {
+		cmd += " " + runnerArgs
+	}
 	ctxTimeout, cancel := context.WithTimeout(ctx, kc.cfg.Timeouts.VMRunningTime)
 	defer cancel()
 	_, reps, err := inst.Run(ctxTimeout, kc.reporter, cmd,

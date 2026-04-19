@@ -204,6 +204,12 @@ func (ctx *checkContext) featureSucceeded(feat flatrpc.Feature, testProg *prog.P
 			return fmt.Sprintf("call %v failed with errno %v", i, call.Error)
 		}
 	}
+	// Some targets (e.g. xtratum) intentionally use an empty DataMmapProg.
+	// In this case there is no call-level coverage/comparison data to validate,
+	// but successful execution is still enough for feature probing.
+	if len(res.Info.Calls) == 0 {
+		return ""
+	}
 	call := res.Info.Calls[0]
 	switch feat {
 	case flatrpc.FeatureCoverage:

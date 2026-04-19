@@ -1,6 +1,7 @@
 // Copyright 2024 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <signal.h>
@@ -111,10 +112,12 @@ private:
 class Proc
 {
 public:
-	Proc(Connection& conn, const char* bin, ProcIDPool& proc_id_pool, int& restarting, const bool& corpus_triaged, int max_signal_fd,
+	Proc(Connection& conn, const char* bin, const std::vector<std::string>& exec_args, ProcIDPool& proc_id_pool, int& restarting,
+	     const bool& corpus_triaged, int max_signal_fd,
 	     int cover_filter_fd, ProcOpts opts)
 	    : conn_(conn),
 	      bin_(bin),
+	      exec_args_(exec_args),
 	      proc_id_pool_(proc_id_pool),
 	      id_(proc_id_pool.Alloc()),
 	      restarting_(restarting),
@@ -219,6 +222,7 @@ public:
 private:
 	Connection& conn_;
 	const char* const bin_;
+	const std::vector<std::string>& exec_args_;
 	ProcIDPool& proc_id_pool_;
 	int id_;
 	int& restarting_;
@@ -344,8 +348,14 @@ private:
 		    {max_signal_fd_, kMaxSignalFd},
 		    {cover_filter_fd_, kCoverFilterFd},
 		};
-		const char* argv[] = {bin_, "exec", nullptr};
-		process_.emplace(argv, fds);
+		std::vector<const char*> argv;
+		argv.reserve(exec_args_.size() + 3);
+		argv.push_back(bin_);
+		argv.push_back("exec");
+		for (const auto& arg : exec_args_)
+			argv.push_back(arg.c_str());
+		argv.push_back(nullptr);
+		process_.emplace(argv.data(), fds);
 
 		Select::Prepare(resp_pipe[0]);
 		Select::Prepare(stdout_pipe[0]);
@@ -556,20 +566,23 @@ private:
 class Runner
 {
 public:
-	Runner(Connection& conn, int vm_index, const char* bin)
+	Runner(Connection& conn, int vm_index, const char* bin, std::vector<std::string> runner_exec_args)
 	    : conn_(conn),
-	      vm_index_(vm_index)
+	      vm_index_(vm_index),
+	      runner_exec_args_(std::move(runner_exec_args))
 	{
 		int num_procs = Handshake();
 		proc_id_pool_.emplace(num_procs);
 		int max_signal_fd = max_signal_ ? max_signal_->FD() : -1;
 		int cover_filter_fd = cover_filter_ ? cover_filter_->FD() : -1;
 		for (int i = 0; i < num_procs; i++)
-			procs_.emplace_back(new Proc(conn, bin, *proc_id_pool_, restarting_, corpus_triaged_,
+			procs_.emplace_back(new Proc(conn, bin, runner_exec_args_, *proc_id_pool_, restarting_, corpus_triaged_,
 						     max_signal_fd, cover_filter_fd, proc_opts_));
 
-		for (;;)
+		for (;;) {
+			fprintf(stderr, "[Runner] Runner loop...");
 			Loop();
+		}
 	}
 
 private:
@@ -589,6 +602,7 @@ private:
 	std::vector<char*> char_leak_frames_;
 #endif
 	ProcOpts proc_opts_{};
+	std::vector<std::string> runner_exec_args_;
 
 	friend std::ostream& operator<<(std::ostream& ss, const Runner& runner)
 	{
@@ -964,14 +978,17 @@ static void FatalHandler(int sig, siginfo_t* info, void* ucontext)
 
 static void runner(char** argv, int argc)
 {
-	if (argc != 5)
-		fail("usage: syz-executor runner <index> <manager-addr> <manager-port>");
+	if (argc < 5)
+		fail("usage: syz-executor runner <index> <manager-addr> <manager-port> [--sut=local|remote --sut_addr=<addr> --sut_timeout_ms=<ms> --sut_retries=<n>]");
 	char* endptr = nullptr;
 	int vm_index = strtol(argv[2], &endptr, 10);
 	if (vm_index < 0 || *endptr != 0)
 		failmsg("failed to parse VM index", "str='%s'", argv[2]);
 	const char* const manager_addr = argv[3];
 	const char* const manager_port = argv[4];
+	std::vector<std::string> runner_exec_args;
+	for (int i = 5; i < argc; i++)
+		runner_exec_args.emplace_back(argv[i]);
 
 	struct rlimit rlim;
 	rlim.rlim_cur = rlim.rlim_max = kFdLimit;
@@ -1005,5 +1022,5 @@ static void runner(char** argv, int argc)
 	for (int fd = conn.FD(); fd < kCoverFilterFd;)
 		fd = dup(fd);
 
-	Runner(conn, vm_index, argv[0]);
+	Runner(conn, vm_index, argv[0], std::move(runner_exec_args));
 }

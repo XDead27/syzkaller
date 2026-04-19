@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -369,7 +370,12 @@ func RunManager(mode *Mode, cfg *mgrconfig.Config) {
 	if mgr.vmPool == nil {
 		log.Logf(0, "no VMs started (type=none)")
 		log.Logf(0, "you are supposed to start syz-executor manually as:")
-		log.Logf(0, "syz-executor runner local manager.ip %v", mgr.serv.Port())
+		cmd := fmt.Sprintf("syz-executor runner local manager.ip %v", mgr.serv.Port())
+		runnerArgs := strings.Join(mgr.cfg.ExecutorRunnerArgs(), " ")
+		if runnerArgs != "" {
+			cmd += " " + runnerArgs
+		}
+		log.Logf(0, "%s", cmd)
 		<-vm.Shutdown
 		return
 	}
@@ -693,6 +699,10 @@ func (mgr *Manager) runInstanceInner(ctx context.Context, inst *vm.Instance, opt
 		return nil, nil, fmt.Errorf("failed to parse manager's address")
 	}
 	cmd := fmt.Sprintf("%v runner %v %v %v", executorBin, inst.Index(), host, port)
+	runnerArgs := strings.Join(mgr.cfg.ExecutorRunnerArgs(), " ")
+	if runnerArgs != "" {
+		cmd += " " + runnerArgs
+	}
 	ctxTimeout, cancel := context.WithTimeout(ctx, mgr.cfg.Timeouts.VMRunningTime)
 	defer cancel()
 	_, reps, err := inst.Run(ctxTimeout, mgr.reporter, cmd, opts...)

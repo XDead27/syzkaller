@@ -5,6 +5,7 @@ package mgrconfig
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/google/syzkaller/pkg/asset"
 )
@@ -209,6 +210,17 @@ type Config struct {
 	// Enabled by default.
 	RunFsck bool `json:"run_fsck"`
 
+
+	// Selects the SUT backend for syz-executor.
+	// Supported values: "local" (default), "remote".
+	SUT string `json:"sut,omitempty"`
+	// Address of the remote SUT RPC endpoint in host:port form.
+	SUTAddr string `json:"sut_addr,omitempty"`
+	// Timeout for remote SUT RPC requests in milliseconds.
+	SUTTimeoutMs int `json:"sut_timeout_ms,omitempty"`
+	// Number of retries for remote SUT RPC requests.
+	SUTRetries int `json:"sut_retries,omitempty"`
+
 	// Type of virtual machine to use, e.g. "qemu", "gce", "android", "isolated", etc.
 	Type string `json:"type"`
 	// VM-type-specific parameters.
@@ -292,4 +304,34 @@ type CovFilterCfg struct {
 	Files     []string `json:"files,omitempty"`
 	Functions []string `json:"functions,omitempty"`
 	RawPCs    []string `json:"pcs,omitempty"`
+}
+
+func (cfg *Config) ExecutorRunnerArgs() []string {
+	mode := cfg.SUT
+	if mode == "" {
+		mode = "local"
+	}
+	args := []string{"--sut=" + mode}
+	if mode != "remote" {
+		return args
+	}
+
+	addr := cfg.SUTAddr
+	if addr == "" {
+		addr = "127.0.0.1:9001"
+	}
+	timeoutMs := cfg.SUTTimeoutMs
+	if timeoutMs <= 0 {
+		timeoutMs = 200
+	}
+	retries := cfg.SUTRetries
+	if retries <= 0 {
+		retries = 1
+	}
+	args = append(args,
+		"--sut_addr="+addr,
+		"--sut_timeout_ms="+strconv.Itoa(timeoutMs),
+		"--sut_retries="+strconv.Itoa(retries),
+	)
+	return args
 }
