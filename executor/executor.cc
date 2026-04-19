@@ -296,6 +296,11 @@ static uint64 slowdown_scale;
 // or we already execute programs.
 static bool in_execute_one = false;
 
+// True when syz-executor is configured with --sut=remote.
+// Used by sandbox setup to keep network namespace shared so 127.0.0.1 reaches
+// the host-side executor RPC server.
+static bool flag_remote_sut_backend = false;
+
 #define SYZ_EXECUTOR 1
 #include "common.h"
 #include "executor_common.h"
@@ -587,6 +592,7 @@ static int parse_cmd_arg_int(int argc, char** argv, const char* key, int default
 static void init_sut_backend(int argc, char** argv)
 {
 	if (use_remote_sut_backend(argc, argv)) {
+		flag_remote_sut_backend = true;
 		const char* endpoint = find_cmd_arg_value(argc, argv, "--sut_addr=");
 		uint32 timeout_ms = parse_cmd_arg_u32(argc, argv, "--sut_timeout_ms=", 200);
 		int retries = parse_cmd_arg_int(argc, argv, "--sut_retries=", 1);
@@ -594,6 +600,7 @@ static void init_sut_backend(int argc, char** argv)
 		remote_sut_backend->Configure(endpoint ? endpoint : "127.0.0.1:9001", timeout_ms, retries);
 		sut_backend = &*remote_sut_backend;
 	} else {
+		flag_remote_sut_backend = false;
 		local_sut_backend.emplace();
 		sut_backend = &*local_sut_backend;
 	}

@@ -4245,7 +4245,9 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
 #endif
-	if (unshare(CLONE_NEWNET)) {
+	if (flag_remote_sut_backend) {
+		debug("remote SUT backend enabled: skipping unshare(CLONE_NEWNET) to preserve host loopback reachability\n");
+	} else if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
 	// Enable access to IPPROTO_ICMP sockets, must be done after CLONE_NEWNET.

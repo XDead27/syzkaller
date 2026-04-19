@@ -579,10 +579,8 @@ public:
 			procs_.emplace_back(new Proc(conn, bin, runner_exec_args_, *proc_id_pool_, restarting_, corpus_triaged_,
 						     max_signal_fd, cover_filter_fd, proc_opts_));
 
-		for (;;) {
-			fprintf(stderr, "[Runner] Runner loop...");
+		for (;;)
 			Loop();
-		}
 	}
 
 private:
