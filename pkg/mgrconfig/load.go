@@ -179,11 +179,11 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("config param sut must contain one of local/remote")
 	}
 	if cfg.SUT == "remote" {
-		if cfg.SUTAddr == "" {
-			cfg.SUTAddr = "127.0.0.1:9001"
-		}
+		// if cfg.SUTAddr == "" {
+		// 	cfg.SUTAddr = "127.0.0.1:9001"
+		// }
 		if cfg.SUTTimeoutMs <= 0 {
-			cfg.SUTTimeoutMs = 200
+			cfg.SUTTimeoutMs = 3000
 		}
 		if cfg.SUTRetries <= 0 {
 			cfg.SUTRetries = 1

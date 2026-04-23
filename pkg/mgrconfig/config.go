@@ -214,8 +214,6 @@ type Config struct {
 	// Selects the SUT backend for syz-executor.
 	// Supported values: "local" (default), "remote".
 	SUT string `json:"sut,omitempty"`
-	// Address of the remote SUT RPC endpoint in host:port form.
-	SUTAddr string `json:"sut_addr,omitempty"`
 	// Timeout for remote SUT RPC requests in milliseconds.
 	SUTTimeoutMs int `json:"sut_timeout_ms,omitempty"`
 	// Number of retries for remote SUT RPC requests.
@@ -316,20 +314,20 @@ func (cfg *Config) ExecutorRunnerArgs() []string {
 		return args
 	}
 
-	addr := cfg.SUTAddr
-	if addr == "" {
-		addr = "127.0.0.1:9001"
-	}
+	// addr := cfg.SUTAddr
+	// if addr == "" {
+	// 	addr = "127.0.0.1:9001"
+	// }
 	timeoutMs := cfg.SUTTimeoutMs
 	if timeoutMs <= 0 {
-		timeoutMs = 200
+		timeoutMs = 3000
 	}
 	retries := cfg.SUTRetries
 	if retries <= 0 {
 		retries = 1
 	}
 	args = append(args,
-		"--sut_addr="+addr,
+		// "--sut_addr="+addr,
 		"--sut_timeout_ms="+strconv.Itoa(timeoutMs),
 		"--sut_retries="+strconv.Itoa(retries),
 	)

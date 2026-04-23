@@ -4,6 +4,7 @@
 #ifndef SUT_BACKEND_REMOTE_H
 #define SUT_BACKEND_REMOTE_H
 
+#include <cerrno>
 #include <errno.h>
 #include <poll.h>
 #include <stdint.h>
@@ -42,6 +43,7 @@ public:
 			close(fd_);
 			fd_ = -1;
 		}
+		recv_buf_.clear();
 	}
 
 	bool Connect()
@@ -49,15 +51,14 @@ public:
 		if (fd_ != -1)
 			return true;
 		if (endpoint_.empty()) {
-			fprintf(stderr, "[Executor] SUT connect failed: endpoint is empty\n");
+			debug("[Executor] SUT connect failed: endpoint is empty\n");
 			return false;
 		}
 		std::string host;
 		std::string port;
 		if (!SplitEndpoint(endpoint_, &host, &port)) {
-			fprintf(stderr,
-				"[Executor] SUT connect failed: invalid endpoint '%s' (expected host:port or [ipv6]:port)\n",
-				endpoint_.c_str());
+			debug("[Executor] SUT connect failed: invalid endpoint '%s' (expected host:port or [ipv6]:port)\n",
+			      endpoint_.c_str());
 			return false;
 		}
 
@@ -69,8 +70,8 @@ public:
 		addrinfo* result = nullptr;
 		int gai_err = getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
 		if (gai_err != 0) {
-			fprintf(stderr, "[Executor] SUT connect failed: DNS/addr resolution for %s:%s failed: %s\n",
-				host.c_str(), port.c_str(), gai_strerror(gai_err));
+			debug("[Executor] SUT connect failed: DNS/addr resolution for %s:%s failed: %s\n",
+			      host.c_str(), port.c_str(), gai_strerror(gai_err));
 			return false;
 		}
 
@@ -81,10 +82,9 @@ public:
 			int sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 			if (sock == -1) {
 				last_errno = errno;
-				fprintf(stderr,
-					"[Executor] SUT connect attempt %d failed: socket(family=%d,type=%d,proto=%d): errno=%d (%s)\n",
-					attempts, ai->ai_family, ai->ai_socktype, ai->ai_protocol,
-					last_errno, strerror(last_errno));
+				debug("[Executor] SUT connect attempt %d failed: socket(family=%d,type=%d,proto=%d): errno=%d (%s)\n",
+				      attempts, ai->ai_family, ai->ai_socktype, ai->ai_protocol,
+				      last_errno, strerror(last_errno));
 				continue;
 			}
 			if (connect(sock, ai->ai_addr, ai->ai_addrlen) == 0) {
@@ -93,44 +93,55 @@ public:
 				return true;
 			}
 			last_errno = errno;
-			fprintf(stderr,
-				"[Executor] SUT connect attempt %d to %s:%s failed: errno=%d (%s)\n",
-				attempts, host.c_str(), port.c_str(), last_errno, strerror(last_errno));
+			debug("[Executor] SUT connect attempt %d to %s:%s failed: errno=%d (%s)\n",
+			      attempts, host.c_str(), port.c_str(), last_errno, strerror(last_errno));
 			close(sock);
 		}
 		freeaddrinfo(result);
 		if (attempts == 0) {
-			fprintf(stderr, "[Executor] SUT connect failed: no resolved addresses for %s:%s\n",
-				host.c_str(), port.c_str());
+			debug("[Executor] SUT connect failed: no resolved addresses for %s:%s\n",
+			      host.c_str(), port.c_str());
 		} else {
-			fprintf(stderr,
-				"[Executor] SUT connect failed after %d attempt(s) to %s:%s (last errno=%d: %s)\n",
-				attempts, host.c_str(), port.c_str(), last_errno, strerror(last_errno));
+			debug("[Executor] SUT connect failed after %d attempt(s) to %s:%s (last errno=%d: %s)\n",
+			      attempts, host.c_str(), port.c_str(), last_errno, strerror(last_errno));
 		}
 		return false;
 	}
 
-	bool Request(const std::string& req, std::string* resp)
+	bool Call(const char* method, const std::string& params_json, std::string* result_json)
 	{
 		if (!IsConnected() && !Connect()) {
-			fprintf(stderr, "[Executor] Failed to connect to SUT backend at %s\n", endpoint_.c_str());
+			debug("[Executor] Failed to connect to SUT backend at %s\n", endpoint_.c_str());
+			return false;
+		}
 
+		const uint64_t request_id = next_rpc_id_++;
+		std::string req;
+		if (!BuildRequest(request_id, method, params_json, &req)) {
 			return false;
 		}
 
 		if (!SendAll(req.data(), req.size())) {
-			fprintf(stderr, "[Executor] Failed to send request to SUT backend at %s\n", endpoint_.c_str());
+			debug("[Executor] Failed to send request to SUT backend at %s\n", endpoint_.c_str());
 			return false;
 		}
+		debug("[Executor] >>> %s\n", req.c_str());
 
-		fprintf(stderr, "[Executor] >>> %s\n", req.c_str());
-		return RecvLine(resp);
+		std::string resp;
+		if (!RecvJsonObject(&resp)) {
+			return false;
+		}
+		debug("[Executor] <<< %s\n", resp.c_str());
+
+		return ParseResponse(resp, request_id, result_json);
 	}
 
 private:
 	int fd_ = -1;
-	uint32_t timeout_ms_ = 200;
+	uint32_t timeout_ms_ = 3000;
 	std::string endpoint_ = "127.0.0.1:12100";
+	std::string recv_buf_;
+	uint64_t next_rpc_id_ = 1;
 
 	bool Wait(short events)
 	{
@@ -165,28 +176,228 @@ private:
 		return true;
 	}
 
-	bool RecvLine(std::string* out)
+	bool RecvJsonObject(std::string* out)
 	{
 		out->clear();
 		for (;;) {
-			if (!Wait(POLLIN))
+			if (ExtractOneJson(&recv_buf_, out))
+				return true;
+
+			if (!Wait(POLLIN)) {
+				debug("[Executor] SUT backend recv timeout after %u ms\n", timeout_ms_);
 				return false;
-			char ch = 0;
-			ssize_t n = recv(fd_, &ch, 1, 0);
-			if (n == 1) {
-				if (ch == '\n')
-					return true;
-				out->push_back(ch);
-				if (out->size() > 16 << 10)
+			}
+
+			char chunk[4096];
+			ssize_t n = recv(fd_, chunk, sizeof(chunk), 0);
+			if (n > 0) {
+				recv_buf_.append(chunk, static_cast<size_t>(n));
+				if (recv_buf_.size() > (1u << 20)) {
+					debug("[Executor] SUT backend recv buffer overflow\n");
 					return false;
+				}
 				continue;
 			}
-			if (n == 0)
+			if (n == 0) {
+				debug("[Executor] SUT backend closed the connection\n");
 				return false;
+			}
 			if (errno == EINTR || errno == EAGAIN)
 				continue;
+
+			debug("[Executor] SUT backend recv failed: errno=%d (%s)\n", errno, strerror(errno));
 			return false;
 		}
+	}
+
+	static void SkipWs(const std::string& s, size_t* pos)
+	{
+		while (*pos < s.size() && isspace(static_cast<unsigned char>(s[*pos])))
+			(*pos)++;
+	}
+
+	static bool ConsumeString(const std::string& s, size_t* pos)
+	{
+		if (*pos >= s.size() || s[*pos] != '"')
+			return false;
+		(*pos)++;
+		bool esc = false;
+		while (*pos < s.size()) {
+			char ch = s[*pos];
+			(*pos)++;
+			if (esc) {
+				esc = false;
+				continue;
+			}
+			if (ch == '\\') {
+				esc = true;
+				continue;
+			}
+			if (ch == '"')
+				return true;
+		}
+		return false;
+	}
+
+	static bool ConsumeValue(const std::string& s, size_t* pos)
+	{
+		SkipWs(s, pos);
+		if (*pos >= s.size())
+			return false;
+		if (s[*pos] == '"')
+			return ConsumeString(s, pos);
+		if (s[*pos] == '{' || s[*pos] == '[') {
+			char open = s[*pos];
+			char close = (open == '{') ? '}' : ']';
+			int depth = 0;
+			bool in_string = false;
+			bool esc = false;
+			for (; *pos < s.size(); (*pos)++) {
+				char ch = s[*pos];
+				if (in_string) {
+					if (esc) {
+						esc = false;
+						continue;
+					}
+					if (ch == '\\') {
+						esc = true;
+						continue;
+					}
+					if (ch == '"')
+						in_string = false;
+					continue;
+				}
+				if (ch == '"') {
+					in_string = true;
+					continue;
+				}
+				if (ch == open)
+					depth++;
+				else if (ch == close)
+					depth--;
+				if (depth == 0) {
+					(*pos)++;
+					return true;
+				}
+			}
+			return false;
+		}
+		while (*pos < s.size()) {
+			char ch = s[*pos];
+			if (ch == ',' || ch == '}' || ch == ']' || isspace(static_cast<unsigned char>(ch)))
+				break;
+			(*pos)++;
+		}
+		return true;
+	}
+
+	static bool ExtractTopLevelField(const std::string& json, const char* field, std::string* value)
+	{
+		size_t pos = 0;
+		SkipWs(json, &pos);
+		if (pos >= json.size() || json[pos] != '{')
+			return false;
+		pos++;
+
+		for (;;) {
+			SkipWs(json, &pos);
+			if (pos >= json.size())
+				return false;
+			if (json[pos] == '}')
+				return false;
+			if (json[pos] != '"')
+				return false;
+
+			size_t key_begin = pos + 1;
+			if (!ConsumeString(json, &pos))
+				return false;
+			size_t key_end = pos - 1;
+			std::string key = json.substr(key_begin, key_end - key_begin);
+
+			SkipWs(json, &pos);
+			if (pos >= json.size() || json[pos] != ':')
+				return false;
+			pos++;
+			SkipWs(json, &pos);
+			size_t value_begin = pos;
+			if (!ConsumeValue(json, &pos))
+				return false;
+			size_t value_end = pos;
+
+			if (key == field) {
+				*value = json.substr(value_begin, value_end - value_begin);
+				return true;
+			}
+
+			SkipWs(json, &pos);
+			if (pos >= json.size())
+				return false;
+			if (json[pos] == ',') {
+				pos++;
+				continue;
+			}
+			if (json[pos] == '}')
+				return false;
+			return false;
+		}
+	}
+
+	static bool ExtractOneJson(std::string* buf, std::string* obj)
+	{
+		size_t start = 0;
+		SkipWs(*buf, &start);
+		if (start >= buf->size()) {
+			buf->clear();
+			return false;
+		}
+		if ((*buf)[start] != '{')
+			return false;
+		size_t pos = start;
+		if (!ConsumeValue(*buf, &pos))
+			return false;
+		obj->assign(buf->substr(start, pos - start));
+		buf->erase(0, pos);
+		return true;
+	}
+
+	static bool BuildRequest(uint64_t id, const char* method, const std::string& params_json, std::string* req)
+	{
+		if (!method || !method[0])
+			return false;
+		const std::string& params = params_json.empty() ? std::string("{}") : params_json;
+		char head[192];
+		int n = snprintf(head, sizeof(head), "{\"id\":%llu,\"method\":\"%s\",\"params\":",
+				 static_cast<unsigned long long>(id), method);
+		if (n <= 0 || static_cast<size_t>(n) >= sizeof(head))
+			return false;
+		req->assign(head, static_cast<size_t>(n));
+		req->append(params);
+		req->append("}");
+		return true;
+	}
+
+	static bool ParseResponse(const std::string& resp, uint64_t expected_id, std::string* result_json)
+	{
+		std::string id_value;
+		if (!ExtractTopLevelField(resp, "id", &id_value))
+			return false;
+		errno = 0;
+		char* end = nullptr;
+		unsigned long long id = strtoull(id_value.c_str(), &end, 10);
+		if (end == id_value.c_str() || *end != '\0' || errno != 0)
+			return false;
+		if (id != expected_id)
+			return false;
+
+		std::string error_value;
+		if (!ExtractTopLevelField(resp, "error", &error_value))
+			return false;
+		size_t p = 0;
+		SkipWs(error_value, &p);
+		if (error_value.compare(p, 4, "null") != 0)
+			return false;
+
+		return ExtractTopLevelField(resp, "result", result_json);
 	}
 
 	static bool SplitEndpoint(const std::string& endpoint, std::string* host, std::string* port)
@@ -252,6 +463,8 @@ public:
 
 	bool Syscall(const call_t* call, intptr_t* args, intptr_t* ret, uint32_t* err_no) override
 	{
+		debug("[Executor] RemoteSutBackend::Syscall name=%s sys_nr=%d mode=%s\n",
+		      call->name, call->sys_nr, call->call ? "local-callback" : "remote-rpc");
 		// Keep pseudo-syscalls and userspace helper callbacks local.
 		if (call->call) {
 			*ret = -1;
@@ -266,21 +479,25 @@ public:
 		*err_no = EIO;
 
 		for (int attempt = 0; attempt <= retries_; attempt++) {
-			std::string req;
-			if (!BuildSyscallRequest(call->sys_nr, args, &req)) {
+			std::string params_json;
+			if (!BuildSyscallRequest(call->sys_nr, args, &params_json)) {
 				*err_no = EPROTO;
 				return false;
 			}
-			std::string resp;
-			if (client_.Request(req, &resp) && ParseSyscallResponse(resp, ret, err_no))
+			std::string result_json;
+			if (client_.Call("Executor.ExecuteSyscall", params_json, &result_json) &&
+			    ParseSyscallResponse(result_json, ret, err_no)) {
 				return true;
+			}
 
-			fprintf(stderr, "[Executor] Syscall request failed (attempt %d/%d): %s\n", attempt + 1, retries_ + 1, req.c_str());
+			debug("[Executor] Syscall request failed (attempt %d/%d): %s\n", attempt + 1, retries_ + 1,
+			      strerror(errno));
 			client_.Close();
 		}
 
 		*ret = -1;
 		*err_no = EIO;
+		debug( "[Executor] All attempts to execute syscall %d failed\n", call->sys_nr);
 		return false;
 	}
 
@@ -290,7 +507,6 @@ private:
 	std::string endpoint_ = "127.0.0.1:9001";
 	uint32_t timeout_ms_ = 200;
 	int retries_ = 1;
-	uint64_t next_rpc_id_ = 1;
 
 	void copyout(char* addr, ull size, ull* value)
 	{
@@ -312,60 +528,35 @@ private:
 		}
 	}
 
-	bool BuildSyscallRequest(int32_t sys_nr, const intptr_t* args, std::string* req)
+	bool BuildSyscallRequest(int32_t sys_nr, const intptr_t* args, std::string* params_json)
 	{
-		char buf[640];
+		char buf[320];
 		int n = snprintf(buf, sizeof(buf),
-				 "{\"jsonrpc\":\"2.0\",\"id\":%llu,\"method\":\"Executor.ExecuteSyscall\","
-				 "\"params\":{\"sys_nr\":%d,\"args\":[%lld,%lld,%lld,%lld,%lld,%lld]}}\n",
-				 static_cast<unsigned long long>(next_rpc_id_++), static_cast<int>(sys_nr),
+				 "{\"sys_nr\":%d,\"args\":[%lld,%lld,%lld,%lld,%lld,%lld]}",
+				 static_cast<int>(sys_nr),
 				 static_cast<long long>(args[0]), static_cast<long long>(args[1]),
 				 static_cast<long long>(args[2]), static_cast<long long>(args[3]),
 				 static_cast<long long>(args[4]), static_cast<long long>(args[5]));
 		if (n <= 0 || static_cast<size_t>(n) >= sizeof(buf))
 			return false;
-		req->assign(buf, static_cast<size_t>(n));
+		params_json->assign(buf, static_cast<size_t>(n));
 		return true;
 	}
 
-	bool ParseSyscallResponse(const std::string& resp, intptr_t* ret, uint32_t* err_no)
+	bool ParseSyscallResponse(const std::string& result_json, intptr_t* ret, uint32_t* err_no)
 	{
-		if (resp.find("\"error\"") != std::string::npos)
-			return false;
-		long long ret_ll = 0;
-		long long errno_ll = 0;
-		if (!ExtractIntegerField(resp, "ret", &ret_ll))
-			return false;
-		if (!ExtractIntegerField(resp, "errno", &errno_ll))
-			return false;
-		if (errno_ll < 0)
-			return false;
-		*ret = static_cast<intptr_t>(ret_ll);
-		*err_no = static_cast<uint32_t>(errno_ll);
-		return true;
+		// Executor service currently returns {"success":true} or {"success":false,"error":"..."}.
+		// We only need success/failure here; syscall return/errno values are not provided by the RPC service.
+		if (result_json.find("\"success\":true") != std::string::npos) {
+			*ret = 0;
+			*err_no = 0;
+			return true;
+		}
+		*ret = -1;
+		*err_no = EIO;
+		return false;
 	}
 
-	static bool ExtractIntegerField(const std::string& json, const char* name, long long* value)
-	{
-		std::string key = "\"" + std::string(name) + "\"";
-		size_t pos = json.find(key);
-		if (pos == std::string::npos)
-			return false;
-		pos = json.find(':', pos + key.size());
-		if (pos == std::string::npos)
-			return false;
-		pos++;
-		while (pos < json.size() && isspace(static_cast<unsigned char>(json[pos])))
-			pos++;
-		const char* start = json.c_str() + pos;
-		char* end = nullptr;
-		errno = 0;
-		long long parsed = strtoll(start, &end, 10);
-		if (start == end || errno != 0)
-			return false;
-		*value = parsed;
-		return true;
-	}
 };
 
 #endif // SUT_BACKEND_REMOTE_H

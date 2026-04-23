@@ -606,7 +606,7 @@ static void init_sut_backend(int argc, char** argv)
 	}
 	if (!sut_backend->Init())
 		fail("failed to initialize SUT backend");
-	fprintf(stderr, "[Executor] Using %s SUT backend\n", use_remote_sut_backend(argc, argv) ? "remote" : "local");
+	debug("[Executor] Using %s SUT backend\n", use_remote_sut_backend(argc, argv) ? "remote" : "local");
 }
 
 static void begin_sut_program()
@@ -683,7 +683,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	if (strcmp(argv[1], "runner") == 0) {
-		fprintf(stderr, "[Executor] Starting syz-executor runner\n");
+		debug("[Executor] Starting syz-executor runner\n");
 		runner(argv, argc);
 		fail("runner returned");
 	}
@@ -1666,10 +1666,8 @@ void execute_call(thread_t* th)
 	// Arrange for res = -1 and errno = EFAULT result for such case.
 	th->res = -1;
 	th->reserrno = EFAULT;
-	if (!sut_backend->Syscall(call, th->args, &th->res, &th->reserrno)) {
-		th->res = -1;
-		th->reserrno = EFAULT;
-	}
+	sut_backend->Syscall(call, th->args, &th->res, &th->reserrno);
+
 	// Our pseudo-syscalls may misbehave.
 	if ((th->res == -1 && th->reserrno == 0) || call->attrs.ignore_return)
 		th->reserrno = EINVAL;
