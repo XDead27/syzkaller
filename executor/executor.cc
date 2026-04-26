@@ -1029,6 +1029,8 @@ void execute_glob()
 	output_data->result_offset.store(off, std::memory_order_release);
 }
 
+static void copyin_serialize(uint8* buf, uint64 val, uint64 size, uint64 bf);
+
 // execute_one executes program stored in input_data.
 void execute_one()
 {
@@ -1082,16 +1084,23 @@ void execute_one()
 			case arg_const: {
 				uint64 size, bf, bf_off, bf_len;
 				uint64 arg = read_const_arg(&input_pos, &size, &bf, &bf_off, &bf_len);
-				copyin(addr, arg, size, bf, bf_off, bf_len);
+				if (bf_off != 0 || bf_len != 0) {
+					// Bitfield read-modify-write: not yet remoted.
+					copyin(addr, arg, size, bf, bf_off, bf_len);
+				} else {
+					uint8 buf[24];
+					copyin_serialize(buf, arg, size, bf);
+					sut_backend->CopyIn(addr, buf, size);
+				}
 				break;
 			}
 			case arg_addr32:
 			case arg_addr64: {
 				uint64 val = read_input(&input_pos) + SYZ_DATA_OFFSET;
-				if (typ == arg_addr32)
-					NONFAILING(*(uint32*)addr = val);
-				else
-					NONFAILING(*(uint64*)addr = val);
+				uint64 addr_size = (typ == arg_addr32) ? 4 : 8;
+				uint8 buf[8];
+				copyin_serialize(buf, val, addr_size, binary_format_native);
+				sut_backend->CopyIn(addr, buf, addr_size);
 				break;
 			}
 			case arg_result: {
@@ -1099,7 +1108,9 @@ void execute_one()
 				uint64 size = meta & 0xff;
 				uint64 bf = meta >> 8;
 				uint64 val = read_result(&input_pos);
-				copyin(addr, val, size, bf, 0, 0);
+				uint8 buf[24];
+				copyin_serialize(buf, val, size, bf);
+				sut_backend->CopyIn(addr, buf, size);
 				break;
 			}
 			case arg_data: {
@@ -1107,7 +1118,7 @@ void execute_one()
 				size &= ~(1ull << 63); // readable flag
 				if (input_pos + size > input_data + kMaxInput)
 					fail("data arg overflow");
-				NONFAILING(memcpy(addr, input_pos, size));
+				sut_backend->CopyIn(addr, (const uint8*)input_pos, size);
 				input_pos += size;
 				break;
 			}
@@ -1752,6 +1763,58 @@ void copyin_int(char* addr, uint64 val, uint64 bf, uint64 bf_off, uint64 bf_len)
 	x = (x & ~BITMASK(shift, bf_len)) | ((val << shift) & BITMASK(shift, bf_len));
 	debug_verbose("copyin_int<%zu>: x=0x%llx\n", sizeof(T), (uint64)x);
 	*(T*)addr = swap(x, sizeof(T), bf);
+}
+
+// Serialize a copyin value into a byte buffer (non-bitfield only).
+// Mirrors copyin_int<T> / copyin string-format logic but writes to buf instead of SUT memory.
+static void copyin_serialize(uint8* buf, uint64 val, uint64 size, uint64 bf)
+{
+	switch (bf) {
+	case binary_format_native:
+	case binary_format_bigendian:
+		switch (size) {
+		case 1: {
+			uint8 v = swap(val, 1, bf);
+			memcpy(buf, &v, 1);
+			break;
+		}
+		case 2: {
+			uint16 v = swap(val, 2, bf);
+			memcpy(buf, &v, 2);
+			break;
+		}
+		case 4: {
+			uint32 v = swap(val, 4, bf);
+			memcpy(buf, &v, 4);
+			break;
+		}
+		case 8: {
+			uint64 v = swap(val, 8, bf);
+			memcpy(buf, &v, 8);
+			break;
+		}
+		default:
+			failmsg("copyin_serialize: bad argument size", "size=%llu", size);
+		}
+		break;
+	case binary_format_strdec:
+		if (size != 20)
+			failmsg("bad strdec size", "size=%llu", size);
+		sprintf((char*)buf, "%020llu", val);
+		break;
+	case binary_format_strhex:
+		if (size != 18)
+			failmsg("bad strhex size", "size=%llu", size);
+		sprintf((char*)buf, "0x%016llx", val);
+		break;
+	case binary_format_stroct:
+		if (size != 23)
+			failmsg("bad stroct size", "size=%llu", size);
+		sprintf((char*)buf, "%023llo", val);
+		break;
+	default:
+		failmsg("copyin_serialize: unknown binary format", "format=%llu", bf);
+	}
 }
 
 void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len)

@@ -136,6 +136,58 @@ public:
 		return ParseResponse(resp, request_id, result_json);
 	}
 
+	static bool ExtractTopLevelField(const std::string& json, const char* field, std::string* value)
+	{
+		size_t pos = 0;
+		SkipWs(json, &pos);
+		if (pos >= json.size() || json[pos] != '{')
+			return false;
+		pos++;
+
+		for (;;) {
+			SkipWs(json, &pos);
+			if (pos >= json.size())
+				return false;
+			if (json[pos] == '}')
+				return false;
+			if (json[pos] != '"')
+				return false;
+
+			size_t key_begin = pos + 1;
+			if (!ConsumeString(json, &pos))
+				return false;
+			size_t key_end = pos - 1;
+			std::string key = json.substr(key_begin, key_end - key_begin);
+
+			SkipWs(json, &pos);
+			if (pos >= json.size() || json[pos] != ':')
+				return false;
+			pos++;
+			SkipWs(json, &pos);
+			size_t value_begin = pos;
+			if (!ConsumeValue(json, &pos))
+				return false;
+			size_t value_end = pos;
+
+			if (key == field) {
+				*value = json.substr(value_begin, value_end - value_begin);
+				return true;
+			}
+
+			SkipWs(json, &pos);
+			if (pos >= json.size())
+				return false;
+			if (json[pos] == ',') {
+				pos++;
+				continue;
+			}
+			if (json[pos] == '}')
+				return false;
+			return false;
+		}
+	}
+
+
 private:
 	int fd_ = -1;
 	uint32_t timeout_ms_ = 3000;
@@ -291,57 +343,6 @@ private:
 		return true;
 	}
 
-	static bool ExtractTopLevelField(const std::string& json, const char* field, std::string* value)
-	{
-		size_t pos = 0;
-		SkipWs(json, &pos);
-		if (pos >= json.size() || json[pos] != '{')
-			return false;
-		pos++;
-
-		for (;;) {
-			SkipWs(json, &pos);
-			if (pos >= json.size())
-				return false;
-			if (json[pos] == '}')
-				return false;
-			if (json[pos] != '"')
-				return false;
-
-			size_t key_begin = pos + 1;
-			if (!ConsumeString(json, &pos))
-				return false;
-			size_t key_end = pos - 1;
-			std::string key = json.substr(key_begin, key_end - key_begin);
-
-			SkipWs(json, &pos);
-			if (pos >= json.size() || json[pos] != ':')
-				return false;
-			pos++;
-			SkipWs(json, &pos);
-			size_t value_begin = pos;
-			if (!ConsumeValue(json, &pos))
-				return false;
-			size_t value_end = pos;
-
-			if (key == field) {
-				*value = json.substr(value_begin, value_end - value_begin);
-				return true;
-			}
-
-			SkipWs(json, &pos);
-			if (pos >= json.size())
-				return false;
-			if (json[pos] == ',') {
-				pos++;
-				continue;
-			}
-			if (json[pos] == '}')
-				return false;
-			return false;
-		}
-	}
-
 	static bool ExtractOneJson(std::string* buf, std::string* obj)
 	{
 		size_t start = 0;
@@ -451,14 +452,46 @@ public:
 
 	bool CopyIn(char* addr, const uint8_t* data, ull size) override
 	{
-		// Phase 1: keep copyin local.
-		return NONFAILING(memcpy(addr, data, size));
+		debug("[Executor] RemoteSutBackend::CopyIn addr=%p size=%llu\n", addr, size);
+		std::lock_guard<std::mutex> guard(mu_);
+
+		for (int attempt = 0; attempt <= retries_; attempt++) {
+			std::string params_json;
+			if (!BuildCopyInRequest(reinterpret_cast<uintptr_t>(addr), data, size, &params_json))
+				return false;
+			std::string result_json;
+			if (client_.Call("Executor.CopyIn", params_json, &result_json) &&
+			    ParseSuccessResponse(result_json))
+				return true;
+
+			debug("[Executor] CopyIn request failed (attempt %d/%d)\n", attempt + 1, retries_ + 1);
+			client_.Close();
+		}
+
+		debug("[Executor] All attempts to CopyIn at %p failed\n", addr);
+		return false;
 	}
 
 	bool CopyOut(char* addr, ull size, ull* value) override
 	{
-		// Phase 1: keep copyout local.
-		return NONFAILING(copyout(addr, size, value));
+		debug("[Executor] RemoteSutBackend::CopyOut addr=%p size=%llu\n", addr, size);
+		std::lock_guard<std::mutex> guard(mu_);
+
+		for (int attempt = 0; attempt <= retries_; attempt++) {
+			std::string params_json;
+			if (!BuildCopyOutRequest(reinterpret_cast<uintptr_t>(addr), size, &params_json))
+				return false;
+			std::string result_json;
+			if (client_.Call("Executor.CopyOut", params_json, &result_json) &&
+			    ParseCopyOutResponse(result_json, value))
+				return true;
+
+			debug("[Executor] CopyOut request failed (attempt %d/%d)\n", attempt + 1, retries_ + 1);
+			client_.Close();
+		}
+
+		debug("[Executor] All attempts to CopyOut at %p failed\n", addr);
+		return false;
 	}
 
 	bool Syscall(const call_t* call, intptr_t* args, intptr_t* ret, uint32_t* err_no) override
@@ -508,26 +541,6 @@ private:
 	uint32_t timeout_ms_ = 200;
 	int retries_ = 1;
 
-	void copyout(char* addr, ull size, ull* value)
-	{
-		switch (size) {
-		case 1:
-			*value = *(uint8_t*)addr;
-			break;
-		case 2:
-			*value = *(uint16_t*)addr;
-			break;
-		case 4:
-			*value = *(uint32_t*)addr;
-			break;
-		case 8:
-			*value = *(ull*)addr;
-			break;
-		default:
-			failmsg("copyout: bad argument size", "size=%llu", size);
-		}
-	}
-
 	bool BuildSyscallRequest(int32_t sys_nr, const intptr_t* args, std::string* params_json)
 	{
 		char buf[320];
@@ -543,11 +556,73 @@ private:
 		return true;
 	}
 
+	bool BuildCopyInRequest(uintptr_t addr, const uint8_t* data, ull size, std::string* params_json)
+	{
+		// Header: {"addr":<addr>,"size":<size>,"data":"
+		// Hex data: 2 chars per byte
+		// Trailer: "}
+		// Conservative upper bound for header+trailer.
+		const size_t hex_len = static_cast<size_t>(size) * 2;
+		const size_t overhead = 80;
+		params_json->clear();
+		params_json->reserve(overhead + hex_len);
+
+		char head[80];
+		int n = snprintf(head, sizeof(head),
+				 "{\"addr\":%llu,\"size\":%llu,\"data\":\"",
+				 static_cast<unsigned long long>(addr),
+				 static_cast<unsigned long long>(size));
+		if (n <= 0 || static_cast<size_t>(n) >= sizeof(head))
+			return false;
+		params_json->append(head, static_cast<size_t>(n));
+
+		for (ull i = 0; i < size; i++) {
+			char byte_hex[3];
+			snprintf(byte_hex, sizeof(byte_hex), "%02x", data[i]);
+			params_json->append(byte_hex, 2);
+		}
+		params_json->append("\"}");
+		return true;
+	}
+
+	bool BuildCopyOutRequest(uintptr_t addr, ull size, std::string* params_json)
+	{
+		char buf[80];
+		int n = snprintf(buf, sizeof(buf),
+				 "{\"addr\":%llu,\"size\":%llu}",
+				 static_cast<unsigned long long>(addr),
+				 static_cast<unsigned long long>(size));
+		if (n <= 0 || static_cast<size_t>(n) >= sizeof(buf))
+			return false;
+		params_json->assign(buf, static_cast<size_t>(n));
+		return true;
+	}
+
+	bool ParseCopyOutResponse(const std::string& result_json, ull* value)
+	{
+		// Expects {"value":<number>}
+		std::string val_str;
+		if (!JsonRpcTcpClient::ExtractTopLevelField(result_json, "value", &val_str))
+			return false;
+		char* end = nullptr;
+		errno = 0;
+		unsigned long long v = strtoull(val_str.c_str(), &end, 10);
+		if (end == val_str.c_str() || errno != 0)
+			return false;
+		*value = v;
+		return true;
+	}
+
+	bool ParseSuccessResponse(const std::string& result_json)
+	{
+		std::string success_str;
+		return JsonRpcTcpClient::ExtractTopLevelField(result_json, "success", &success_str) 
+			&& success_str == "true";
+	}
+
 	bool ParseSyscallResponse(const std::string& result_json, intptr_t* ret, uint32_t* err_no)
 	{
-		// Executor service currently returns {"success":true} or {"success":false,"error":"..."}.
-		// We only need success/failure here; syscall return/errno values are not provided by the RPC service.
-		if (result_json.find("\"success\":true") != std::string::npos) {
+		if (ParseSuccessResponse(result_json)) {
 			*ret = 0;
 			*err_no = 0;
 			return true;
