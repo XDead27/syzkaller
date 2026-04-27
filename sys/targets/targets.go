@@ -200,6 +200,8 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "arm",
 			CCompiler:		  "gcc",
 			CxxCompiler:	  "g++",
+
+			DataOffset:		  0x8000000,
 			// CCompiler:		  "armv7l-unknown-linux-gnueabihf-gcc",
 			// CxxCompiler:	  "armv7l-unknown-linux-gnueabihf-g++",
 			osCommon: osCommon{

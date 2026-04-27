@@ -600,7 +600,11 @@ private:
 
 	bool ParseCopyOutResponse(const std::string& result_json, ull* value)
 	{
-		// Expects {"value":<number>}
+		// Expects {"success": true, "value":<number>}
+		std::string success_str;
+		if (!JsonRpcTcpClient::ExtractTopLevelField(result_json, "success", &success_str) || success_str != "true")
+			return false;
+
 		std::string val_str;
 		if (!JsonRpcTcpClient::ExtractTopLevelField(result_json, "value", &val_str))
 			return false;
