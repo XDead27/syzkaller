@@ -518,19 +518,24 @@ public:
 				return false;
 			}
 			std::string result_json;
-			if (client_.Call("Executor.ExecuteSyscall", params_json, &result_json) &&
-			    ParseSyscallResponse(result_json, ret, err_no)) {
-				return true;
+			if (!client_.Call("Executor.ExecuteSyscall", params_json, &result_json)) {
+				// RPC transport failure — retry with a fresh connection.
+				debug("[Executor] Syscall RPC failed (attempt %d/%d): %s\n",
+				      attempt + 1, retries_ + 1, strerror(errno));
+				*err_no = EIO;
+				client_.Close();
+				continue;
 			}
+			// RPC succeeded — parse the application-level response.
+			// ParseSyscallResponse calls failmsg on crash, sets err_no on error.
+			if (ParseSyscallResponse(result_json, ret, err_no))
+				return true;
 
-			debug("[Executor] Syscall request failed (attempt %d/%d): %s\n", attempt + 1, retries_ + 1,
-			      strerror(errno));
-			client_.Close();
+			// Server explicitly returned failure
+			return false;
 		}
 
-		*ret = -1;
-		*err_no = EIO;
-		debug( "[Executor] All attempts to execute syscall %d failed\n", call->sys_nr);
+		debug("[Executor] All attempts to execute syscall %d failed\n", call->sys_nr);
 		return false;
 	}
 
@@ -631,8 +636,18 @@ private:
 			*err_no = 0;
 			return true;
 		}
+		// Extract the error message from the response. If it indicates a
+		// target crash, terminate so the monitor can pick up the message.
+		std::string error_str;
+		if (JsonRpcTcpClient::ExtractTopLevelField(result_json, "error", &error_str)) {
+			// Strip surrounding quotes from the JSON string value.
+			if (error_str.size() >= 2 && error_str.front() == '"' && error_str.back() == '"')
+				error_str = error_str.substr(1, error_str.size() - 2);
+			if (error_str.find("xtratum crash:") != std::string::npos)
+				failmsg(error_str.c_str(), nullptr);
+		}
 		*ret = -1;
-		*err_no = EIO;
+		*err_no = EFAULT;
 		return false;
 	}
 
