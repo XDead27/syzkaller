@@ -159,6 +159,23 @@ func New(cfg *RemoteConfig) (Server, error) {
 		return nil, err
 	}
 	features := flatrpc.AllFeatures
+	if cfg.SUT == "remote" {
+		// Host-side executor talks to a remote SUT; skip local feature probing that
+		// requires host network/device setup (e.g. tun, netdevices, vhci, wifi).
+		features &^= flatrpc.FeatureNetInjection
+		features &^= flatrpc.FeatureNetDevices
+		features &^= flatrpc.FeatureDevlinkPCI
+		features &^= flatrpc.FeatureNicVF
+		features &^= flatrpc.FeatureVhciInjection
+		features &^= flatrpc.FeatureWifiEmulation
+		features &^= flatrpc.FeatureUSBEmulation
+		features &^= flatrpc.FeatureLRWPANEmulation
+		// Sandbox probing is irrelevant for host-side executor and can fail
+		// due to missing privileges (e.g. CLONE_NEWNET, mounting /proc).
+		features &^= flatrpc.FeatureSandboxNamespace
+		features &^= flatrpc.FeatureSandboxSetuid
+		features &^= flatrpc.FeatureSandboxAndroid
+	}
 	if !cfg.Experimental.RemoteCover {
 		features &= ^flatrpc.FeatureExtraCoverage
 	}

@@ -2,6 +2,10 @@
 
 package report
 
+import (
+	"regexp"
+)
+
 type xtratum struct {
 	*config
 }
@@ -12,13 +16,29 @@ func ctorXtratum(cfg *config) (reporterImpl, []string, error) {
 }
 
 func (ctx *xtratum) ContainsCrash(output []byte) bool {
-	return false
+	return containsCrash(output, xtratumOopses, ctx.ignores)
 }
 
 func (ctx *xtratum) Parse(output []byte) *Report {
-	return nil
+	return simpleLineParser(output, xtratumOopses, xtratumStackParams, ctx.ignores)
 }
 
 func (ctx *xtratum) Symbolize(rep *Report) error {
 	return nil
 }
+
+var xtratumStackParams = &stackParams{}
+
+var xtratumOopses = append([]*oops{
+	{
+		[]byte("crash:"),
+		[]oopsFormat{
+			{
+				title: compile("xtratum crash: (.+)"),
+				fmt:   "crash: %[1]v",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	&groupGoRuntimeErrors,
+}, commonOopses...)

@@ -3961,6 +3961,10 @@ static void setup_fusectl();
 // See https://github.com/google/syzkaller/issues/4939 for more details.
 static void sandbox_common_mount_tmpfs(void)
 {
+	if (flag_remote_sut_backend) {
+		debug("remote SUT backend enabled: skipping sandbox tmpfs setup\n");
+		return;
+	}
 	// Android systems set fs.mount-max to a very low value, causing ENOSPC when doing the mounts below
 	// (see https://github.com/google/syzkaller/issues/4972). 100K mounts should be enough for everyone.
 	write_file("/proc/sys/fs/mount-max", "100000");
