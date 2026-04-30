@@ -531,6 +531,12 @@ public:
 			if (ParseSyscallResponse(result_json, ret, err_no))
 				return true;
 
+			if (*ret == -2727) {
+				// The SUT reported a crash. Close the connection and fail.
+				client_.Close();
+				failmsg("SUT crash detected during syscall execution", nullptr);
+			}
+
 			// Server explicitly returned failure
 			return false;
 		}
@@ -643,8 +649,13 @@ private:
 			// Strip surrounding quotes from the JSON string value.
 			if (error_str.size() >= 2 && error_str.front() == '"' && error_str.back() == '"')
 				error_str = error_str.substr(1, error_str.size() - 2);
-			if (error_str.find("xtratum crash:") != std::string::npos)
-				failmsg(error_str.c_str(), nullptr);
+			if (error_str.find("xtratum crash:") != std::string::npos) {
+				// failmsg(error_str.c_str(), nullptr);
+				fprintf(stderr, error_str.c_str());
+				*ret = -2727; // Distinctive non-zero value to indicate a crash (not just a syscall error).
+				*err_no = EFAULT;
+				return false;
+			}
 		}
 		*ret = -1;
 		*err_no = EFAULT;
