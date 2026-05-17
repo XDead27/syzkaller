@@ -261,8 +261,10 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 				info = job.calls[call]
 			}
 			if info == nil || res == nil {
+				job.info.Logf("deflake: call=%d missing info/res", call)
 				return
 			}
+			job.info.Logf("deflake: call=%d signal=%d cover=%d errno=%d", call, len(res.Signal), len(res.Cover), res.Error)
 			if len(info.rawCover) == 0 && job.fuzzer.Config.FetchRawCover {
 				info.rawCover = res.Cover
 			}
