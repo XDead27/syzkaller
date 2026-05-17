@@ -1492,7 +1492,7 @@ void copyout_call_results(thread_t* th)
 void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bool all_signal)
 {
 	// WARN: Debug
-	debug("write_output fcomps=%d signal=%d cover=%d, k64=%d", flag_comparisons, flag_collect_signal, flag_collect_cover, is_kernel_64_bit);
+	debug("write_output fcomps=%d signal=%d cover=%d, k64=%d\n", flag_comparisons, flag_collect_signal, flag_collect_cover, is_kernel_64_bit);
 
 	CoverAccessScope scope(cov);
 	auto& fbb = *output_builder;

@@ -209,6 +209,10 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "X",
 				ExecutorUsesForkServer: false,
 			},
+			KernelAddresses: KernelAddresses{
+				TextStart: 0x100000,
+				TextEnd:   0x200000,
+			},
 		},
 	},
 	TestOS: {
