@@ -1383,8 +1383,10 @@ uint32 write_cover(flatbuffers::FlatBufferBuilder& fbb, cover_t* cov)
 	}
 	fbb.StartVector<uint64_t>(cover_size);
 	// Flatbuffer arrays are written backwards, so reverse the order on our side as well.
-	for (uint32 i = 0; i < cover_size; i++)
+	for (uint32 i = 0; i < cover_size; i++) {
 		fbb.PushElement(uint64(cover_data[cover_size - i - 1] + cov->pc_offset));
+		debug("cover: %llx\n", uint64(cover_data[cover_size - i - 1] + cov->pc_offset));
+	}
 	return fbb.EndVector(cover_size);
 }
 
@@ -1489,6 +1491,9 @@ void copyout_call_results(thread_t* th)
 
 void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bool all_signal)
 {
+	// WARN: Debug
+	debug("write_output fcomps=%d signal=%d cover=%d, k64=%d", flag_comparisons, flag_collect_signal, flag_collect_cover, is_kernel_64_bit);
+
 	CoverAccessScope scope(cov);
 	auto& fbb = *output_builder;
 	const uint32 start_size = output_builder->GetSize();
@@ -1497,15 +1502,23 @@ void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bo
 	uint32 cover_off = 0;
 	uint32 comps_off = 0;
 	if (flag_comparisons) {
+		// WARN: Debug
+		debug("write_comparisons: size=%u\n", cov->size);
+
 		comps_off = write_comparisons(fbb, cov);
 	} else {
 		if (flag_collect_signal) {
+			// WARN: Debug
+			debug("write_signal: size=%u\n", cov->size);
+
 			if (is_kernel_64_bit)
 				signal_off = write_signal<uint64>(fbb, index, cov, all_signal);
 			else
 				signal_off = write_signal<uint32>(fbb, index, cov, all_signal);
 		}
 		if (flag_collect_cover) {
+			// WARN: Debug
+			debug("write_cover: size=%u\n", cov->size);
 			if (is_kernel_64_bit)
 				cover_off = write_cover<uint64>(fbb, cov);
 			else

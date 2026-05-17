@@ -568,6 +568,7 @@ public:
 		// [count] [pc0] [pc1] ... where each element is uint64 or uint32
 		// depending on is_kernel_64_bit. The subsequent cover_collect() will
 		// read the count and set cov->size accordingly.
+		debug("[Executor] Is kernel_64_bit=%d", is_kernel_64_bit);
 		if (is_kernel_64_bit) {
 			uint64* buf = (uint64*)cov->data;
 			size_t max_pcs = (cov->data_end - cov->data) / sizeof(uint64) - 1;

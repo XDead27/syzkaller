@@ -2,7 +2,6 @@
 
 #include <fcntl.h>
 #include <stdlib.h>
-#include <sys/kcov.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
@@ -58,6 +57,18 @@ static void cover_open(cover_t* cov, bool extra)
 
 static void cover_mmap(cover_t* cov)
 {
+	// if (cov->mmap_alloc_ptr != NULL)
+	// 	fail("cover_mmap invoked on an already mmapped cover_t object");
+	// cov->mmap_alloc_size = cov->data_size;
+	// void* mmap_ptr = mmap(NULL, cov->mmap_alloc_size, PROT_READ | PROT_WRITE,
+	// 		      MAP_SHARED, cov->fd, 0);
+	// if (mmap_ptr == MAP_FAILED)
+	// 	fail("cover mmap failed");
+	// cov->mmap_alloc_ptr = (char*)mmap_ptr;
+	// cov->data = (char*)mmap_ptr;
+	// cov->data_end = cov->data + cov->mmap_alloc_size;
+	cov->data_offset = is_kernel_64_bit ? sizeof(uint64_t) : sizeof(uint32_t);
+	cov->pc_offset = 0;
 }
 
 static void cover_protect(cover_t* cov)
