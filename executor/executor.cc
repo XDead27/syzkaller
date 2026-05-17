@@ -1685,8 +1685,10 @@ void execute_call(thread_t* th)
 	// Reset the flag before the first possible fail().
 	th->soft_fail_state = false;
 
-	if (flag_coverage)
+	if (flag_coverage) {
+		sut_backend->InjectCoverage(&th->cov);
 		cover_collect(&th->cov);
+	}
 	th->fault_injected = false;
 
 	if (th->call_props.fail_nth > 0)

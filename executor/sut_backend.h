@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 struct call_t;
+struct cover_t;
 
 typedef unsigned long long ull;
 
@@ -22,6 +23,11 @@ public:
 	virtual bool CopyIn(char* addr, const uint8_t* data, ull size) = 0;
 	virtual bool CopyOut(char* addr, ull size, ull* value) = 0;
 	virtual bool Syscall(const call_t* call, intptr_t* args, intptr_t* ret, uint32_t* err_no) = 0;
+
+	// Called after Syscall() to inject coverage data into the cover buffer.
+	// Remote backends override this to populate cov->data with PCs received from the SUT.
+	// Local backends rely on kcov and leave this as a no-op.
+	virtual void InjectCoverage(cover_t* cov) { (void)cov; }
 };
 
 #endif // SUT_BACKEND_H

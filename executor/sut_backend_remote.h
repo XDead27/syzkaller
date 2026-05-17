@@ -18,12 +18,14 @@
 #include <cstdlib>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include <netdb.h>
 
 #include "sut_backend.h"
 
-class JsonRpcTcpClient {
+class JsonRpcTcpClient
+{
 public:
 	void Configure(const std::string& endpoint, uint32_t timeout_ms)
 	{
@@ -186,7 +188,6 @@ public:
 			return false;
 		}
 	}
-
 
 private:
 	int fd_ = -1;
@@ -422,7 +423,8 @@ private:
 	}
 };
 
-class RemoteSutBackend final : public SutBackend {
+class RemoteSutBackend final : public SutBackend
+{
 public:
 	void Configure(const std::string& endpoint, uint32_t timeout_ms, int retries)
 	{
@@ -438,7 +440,7 @@ public:
 		return true;
 	}
 
-	bool BeginProgram(ull req_id, ull proc_id) override
+	bool BeginProgram(ull req_id, uint64 proc_id) override
 	{
 		(void)req_id;
 		(void)proc_id;
@@ -450,7 +452,7 @@ public:
 		return true;
 	}
 
-	bool CopyIn(char* addr, const uint8_t* data, ull size) override
+	bool CopyIn(char* addr, const uint8_t* data, uint64 size) override
 	{
 		debug("[Executor] RemoteSutBackend::CopyIn addr=%p size=%llu\n", addr, size);
 		std::lock_guard<std::mutex> guard(mu_);
@@ -472,7 +474,7 @@ public:
 		return false;
 	}
 
-	bool CopyOut(char* addr, ull size, ull* value) override
+	bool CopyOut(char* addr, uint64 size, ull* value) override
 	{
 		debug("[Executor] RemoteSutBackend::CopyOut addr=%p size=%llu\n", addr, size);
 		std::lock_guard<std::mutex> guard(mu_);
@@ -502,6 +504,7 @@ public:
 		if (call->call) {
 			*ret = -1;
 			errno = EFAULT;
+			last_coverage_pcs_.clear();
 			bool ok = NONFAILING(*ret = execute_syscall(call, args));
 			*err_no = errno;
 			return ok;
@@ -510,6 +513,7 @@ public:
 		std::lock_guard<std::mutex> guard(mu_);
 		*ret = -1;
 		*err_no = EIO;
+		last_coverage_pcs_.clear();
 
 		for (int attempt = 0; attempt <= retries_; attempt++) {
 			std::string params_json;
@@ -528,14 +532,10 @@ public:
 			}
 			// RPC succeeded — parse the application-level response.
 			// ParseSyscallResponse calls failmsg on crash, sets err_no on error.
-			if (ParseSyscallResponse(result_json, ret, err_no))
+			if (ParseSyscallResponse(result_json, ret, err_no)) {
+				ParseCoverageFromResponse(result_json);
 				return true;
-
-			// if (*ret == -2727) {
-			// 	// The SUT reported a crash. Close the connection and fail.
-			// 	client_.Close();
-			// 	failmsg("SUT crash detected during syscall execution", nullptr);
-			// }
+			}
 
 			// Server explicitly returned failure
 			return false;
@@ -545,12 +545,47 @@ public:
 		return false;
 	}
 
+	void InjectCoverage(cover_t* cov) override
+	{
+		if (last_coverage_pcs_.empty() || !cov || !cov->data)
+			return;
+
+		// Write PCs into the cover buffer in KCOV format:
+		// [count] [pc0] [pc1] ... where each element is uint64 or uint32
+		// depending on is_kernel_64_bit. The subsequent cover_collect() will
+		// read the count and set cov->size accordingly.
+		if (is_kernel_64_bit) {
+			uint64* buf = (uint64*)cov->data;
+			size_t max_pcs = (cov->data_end - cov->data) / sizeof(uint64) - 1;
+			size_t n = last_coverage_pcs_.size();
+			if (n > max_pcs) {
+				n = max_pcs;
+				cov->overflow = true;
+			}
+			buf[0] = n;
+			memcpy(&buf[1], last_coverage_pcs_.data(), n * sizeof(uint64));
+		} else {
+			uint32* buf = (uint32*)cov->data;
+			size_t max_pcs = (cov->data_end - cov->data) / sizeof(uint32) - 1;
+			size_t n = last_coverage_pcs_.size();
+			if (n > max_pcs) {
+				n = max_pcs;
+				cov->overflow = true;
+			}
+			buf[0] = (uint32)n;
+			for (size_t i = 0; i < n; i++)
+				buf[i + 1] = (uint32)last_coverage_pcs_[i];
+		}
+		debug("[Executor] Injected %zu coverage PCs from remote\n", last_coverage_pcs_.size());
+	}
+
 private:
 	std::mutex mu_;
 	JsonRpcTcpClient client_;
 	std::string endpoint_ = "127.0.0.1:9001";
 	uint32_t timeout_ms_ = 200;
 	int retries_ = 1;
+	std::vector<uint64> last_coverage_pcs_;
 
 	bool BuildSyscallRequest(int32_t sys_nr, const intptr_t* args, std::string* params_json)
 	{
@@ -567,7 +602,7 @@ private:
 		return true;
 	}
 
-	bool BuildCopyInRequest(uintptr_t addr, const uint8_t* data, ull size, std::string* params_json)
+	bool BuildCopyInRequest(uintptr_t addr, const uint8_t* data, uint64 size, std::string* params_json)
 	{
 		// Header: {"addr":<addr>,"size":<size>,"data":"
 		// Hex data: 2 chars per byte
@@ -596,7 +631,7 @@ private:
 		return true;
 	}
 
-	bool BuildCopyOutRequest(uintptr_t addr, ull size, std::string* params_json)
+	bool BuildCopyOutRequest(uintptr_t addr, uint64 size, std::string* params_json)
 	{
 		char buf[80];
 		int n = snprintf(buf, sizeof(buf),
@@ -631,8 +666,7 @@ private:
 	bool ParseSuccessResponse(const std::string& result_json)
 	{
 		std::string success_str;
-		return JsonRpcTcpClient::ExtractTopLevelField(result_json, "success", &success_str) 
-			&& success_str == "true";
+		return JsonRpcTcpClient::ExtractTopLevelField(result_json, "success", &success_str) && success_str == "true";
 	}
 
 	bool ParseSyscallResponse(const std::string& result_json, intptr_t* ret, uint32_t* err_no)
@@ -660,7 +694,35 @@ private:
 		return false;
 	}
 
+	// Parse the "coverage" array from the ExecuteSyscall response.
+	// Expected format: "coverage":[123456,789012,...] (array of uint64 PC addresses)
+	void ParseCoverageFromResponse(const std::string& result_json)
+	{
+		last_coverage_pcs_.clear();
+		std::string cov_str;
+		if (!JsonRpcTcpClient::ExtractTopLevelField(result_json, "coverage", &cov_str))
+			return;
+		// cov_str should be "[num,num,num,...]"
+		if (cov_str.size() < 2 || cov_str.front() != '[' || cov_str.back() != ']')
+			return;
+		// Parse the comma-separated uint64 values between [ and ]
+		const char* p = cov_str.c_str() + 1;
+		const char* end = cov_str.c_str() + cov_str.size() - 1;
+		while (p < end) {
+			while (p < end && (*p == ' ' || *p == ','))
+				p++;
+			if (p >= end)
+				break;
+			char* next = nullptr;
+			errno = 0;
+			unsigned long long val = strtoull(p, &next, 0);
+			if (next == p || errno != 0)
+				break;
+			last_coverage_pcs_.push_back((uint64)val);
+			p = next;
+		}
+		debug("[Executor] Parsed %zu coverage PCs from response\n", last_coverage_pcs_.size());
+	}
 };
 
 #endif // SUT_BACKEND_REMOTE_H
-
