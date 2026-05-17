@@ -547,10 +547,24 @@ public:
 
 	void InjectCoverage(cover_t* cov) override
 	{
-		if (last_coverage_pcs_.empty() || !cov || !cov->data)
+		if (!cov)
 			return;
 
-		// Write PCs into the cover buffer in KCOV format:
+		// In remote mode, the kcov buffer may be mapped read-only (PROT_READ)
+		// and/or pkey-protected, making direct writes impossible.
+		// We replace cov->data with our own writable buffer on first use.
+		EnsureWritableCoverBuffer(cov);
+
+		if (last_coverage_pcs_.empty()) {
+			// No coverage from this call — ensure count is zero.
+			if (is_kernel_64_bit)
+				*(uint64*)cov->data = 0;
+			else
+				*(uint32*)cov->data = 0;
+			return;
+		}
+
+		// Write PCs into our writable buffer in KCOV format:
 		// [count] [pc0] [pc1] ... where each element is uint64 or uint32
 		// depending on is_kernel_64_bit. The subsequent cover_collect() will
 		// read the count and set cov->size accordingly.
@@ -586,6 +600,40 @@ private:
 	uint32_t timeout_ms_ = 200;
 	int retries_ = 1;
 	std::vector<uint64> last_coverage_pcs_;
+
+	// Replace the kcov-backed (potentially read-only) buffer with a writable
+	// private allocation. This is idempotent — once replaced, subsequent calls
+	// are no-ops. We keep the same data_size so cover_collect and write_signal
+	// work unchanged.
+	void EnsureWritableCoverBuffer(cover_t* cov)
+	{
+		// If data hasn't been mapped yet (delayed kcov mmap), allocate from scratch.
+		// If data is within the kcov mmap region, replace it with a writable buffer.
+		bool needs_alloc = false;
+		uint32 size = cov->data_size;
+		if (!size)
+			size = 256 * 1024; // Fallback: 256KB (enough for ~32K PCs)
+		if (!cov->data) {
+			needs_alloc = true;
+		} else if (cov->mmap_alloc_ptr &&
+			   cov->data >= cov->mmap_alloc_ptr &&
+			   cov->data < cov->mmap_alloc_ptr + cov->mmap_alloc_size) {
+			needs_alloc = true;
+		}
+		if (!needs_alloc)
+			return;
+		char* buf = (char*)mmap(NULL, size, PROT_READ | PROT_WRITE,
+					MAP_PRIVATE | MAP_ANON, -1, 0);
+		if (buf == MAP_FAILED)
+			exitf("failed to allocate remote coverage buffer");
+		memset(buf, 0, size);
+		cov->data = buf;
+		cov->data_end = buf + size;
+		cov->data_size = size;
+		cov->data_offset = is_kernel_64_bit ? sizeof(uint64) : sizeof(uint32);
+		cov->pc_offset = 0;
+		debug("[Executor] Allocated writable remote coverage buffer (%u bytes)\n", size);
+	}
 
 	bool BuildSyscallRequest(int32_t sys_nr, const intptr_t* args, std::string* params_json)
 	{
