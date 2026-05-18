@@ -242,7 +242,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 		fuzzer.Logf(0, "triage: call=%d filtered by NewInputFilter", call)
 		return
 	}
-	fuzzer.Logf(2, "found new signal in call %d in %s", call, p)
+	fuzzer.Logf(0, "found new signal in call %d in %s", call, p)
 	if *triage == nil {
 		*triage = make(map[int]*triageCall)
 	}
@@ -311,7 +311,7 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 }
 
 func (fuzzer *Fuzzer) startJob(stat *stat.Val, newJob job) {
-	fuzzer.Logf(2, "started %T", newJob)
+	fuzzer.Logf(0, "started %T", newJob)
 	go func() {
 		stat.Add(1)
 		defer stat.Add(-1)

@@ -18,10 +18,10 @@ import (
 
 const (
 	// "Recommended" number of calls in programs that we try to aim at during fuzzing.
-	RecommendedCalls = 30
+	RecommendedCalls = 6
 	// "Recommended" max number of calls in programs.
 	// If we receive longer programs from hub/corpus we discard them.
-	MaxCalls = 40
+	MaxCalls = 8
 	// "Recommended" number of calls in KFuzzTest mode. These targets test the behavior
 	// of internal kernel functions rather than system behavior, and for this reason
 	// it is more sensible to generate a smaller number of calls instead of long chains.

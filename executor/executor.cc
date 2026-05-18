@@ -1332,6 +1332,8 @@ thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint
 		th->args[i] = args[i];
 	event_set(&th->ready);
 	running++;
+	debug("[%llums] scheduled call #%d: syscall=%d copyout=%llu args=%llu/%llu/%llu/%llu\n",
+	      current_time_ms() - start_time_ms, call_index, call_num, copyout_index, args[0], args[1], args[2], args[3]);
 	return th;
 }
 
@@ -1709,8 +1711,9 @@ void execute_call(thread_t* th)
 
 	// If required, run the syscall some more times.
 	// But let's still return res, errno and coverage from the first execution.
-	for (int i = 0; i < th->call_props.rerun; i++)
+	for (int i = 0; i < th->call_props.rerun; i++) {
 		NONFAILING(execute_syscall(call, th->args));
+	}
 
 	debug("#%d [%llums] <- %s=0x%llx",
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res);

@@ -500,7 +500,7 @@ public:
 	{
 		debug("[Executor] RemoteSutBackend::Syscall name=%s sys_nr=%d mode=%s\n",
 		      call->name, call->sys_nr, call->call ? "local-callback" : "remote-rpc");
-		// Keep pseudo-syscalls and userspace helper callbacks local.
+		// TODO: What to do in this case
 		if (call->call) {
 			*ret = -1;
 			errno = EFAULT;

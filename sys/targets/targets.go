@@ -191,23 +191,28 @@ func GetEx(OS, arch string, clang bool) *Target {
 var List = map[string]map[string]*Target{
 	Xtratum: {
 		ARM: {
-			PtrSize:          4,
-			PageSize:         4 << 10,
+			PtrSize:  4,
+			PageSize: 4 << 10,
 			// CFlags:           []string{"-marm", "-static", "-Wno-unused-function"},
 			CFlags:           []string{"-static", "-Wno-unused-function"},
 			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
-			CCompiler:		  "gcc",
-			CxxCompiler:	  "g++",
+			CCompiler:        "gcc",
+			CxxCompiler:      "g++",
 
-			DataOffset:		  0x8000000,
+			DataOffset: 0x8000000,
 			// CCompiler:		  "armv7l-unknown-linux-gnueabihf-gcc",
 			// CxxCompiler:	  "armv7l-unknown-linux-gnueabihf-g++",
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "X",
 				ExecutorUsesForkServer: false,
+			},
+			timeouts: Timeouts{
+				Syscall:  5 * time.Second,
+				Program:  150 * time.Second,
+				NoOutput: 5 * time.Minute,
 			},
 			KernelAddresses: KernelAddresses{
 				TextStart: 0x100000,
@@ -529,7 +534,7 @@ var oses = map[string]osCommon{
 		SyscallPrefix:          "__NR_",
 		ExecutorUsesForkServer: false,
 		KernelObject:           "xng.armv7a-vmsa-tz.bin",
-		BuildOS:				Linux,
+		BuildOS:                Linux,
 	},
 	Linux: {
 		SyscallNumbers:         true,
