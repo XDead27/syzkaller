@@ -230,6 +230,7 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 	}
 	prevTotalNewSignal := 0
 	for run := 1; ; run++ {
+		job.info.Logf("deflake run #%d", run)
 		totalNewSignal := 0
 		indices := make([]int, 0, len(job.calls))
 		for call, info := range job.calls {
@@ -237,9 +238,11 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			totalNewSignal += len(info.newSignal)
 		}
 		if job.stopDeflake(run, needRuns, prevTotalNewSignal == totalNewSignal) {
+			job.info.Logf("deflake stop condition met (run=%d, total new signal=%d)", run, totalNewSignal)
 			break
 		}
 		prevTotalNewSignal = totalNewSignal
+		job.info.Logf("deflake: total new signal=%d, avoiding executors=%v", totalNewSignal, avoid)
 		result := exec(&queue.Request{
 			Prog:            job.p,
 			ExecOpts:        setFlags(flatrpc.ExecFlagCollectCover | flatrpc.ExecFlagCollectSignal),
@@ -248,10 +251,12 @@ func (job *triageJob) deflake(exec func(*queue.Request, ProgFlags) *queue.Result
 			Stat:            job.fuzzer.statExecTriage,
 		}, progInTriage)
 		if result.Stop() {
+			job.info.Logf("deflake execution stopped")
 			return true
 		}
 		avoid = append(avoid, result.Executor)
 		if result.Info == nil {
+			job.info.Logf("deflake execution failed")
 			continue // the program has failed
 		}
 		deflakeCall := func(call int, res *flatrpc.CallInfo) {
