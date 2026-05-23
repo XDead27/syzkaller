@@ -156,7 +156,6 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 		fuzzer.triageProgCall(req.Prog, res.Info.Extra, -1, &triage)
 
 		if len(triage) != 0 {
-			fuzzer.Logf(0, "triage: %d candidate calls queued", len(triage))
 			queue, stat := fuzzer.triageQueue, fuzzer.statJobsTriage
 			if flags&progCandidate > 0 {
 				queue, stat = fuzzer.triageCandidateQueue, fuzzer.statJobsTriageCandidate
@@ -177,8 +176,6 @@ func (fuzzer *Fuzzer) processResult(req *queue.Request, res *queue.Result, flags
 			}
 			sort.Strings(job.info.Calls)
 			fuzzer.startJob(stat, job)
-		} else {
-			fuzzer.Logf(0, "triage: no candidate calls (signal empty or already known)")
 		}
 	}
 
@@ -232,17 +229,13 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 		return
 	}
 	prio := signalPrio(p, info, call)
-	fuzzer.Logf(0, "triage: call=%d signal=%d cover=%d errno=%d prio=%d", call, len(info.Signal), len(info.Cover), info.Error, prio)
 	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
-		fuzzer.Logf(0, "triage: call=%d no new signal", call)
 		return
 	}
 	if !fuzzer.Config.NewInputFilter(p.CallName(call)) {
-		fuzzer.Logf(0, "triage: call=%d filtered by NewInputFilter", call)
 		return
 	}
-	fuzzer.Logf(0, "found new signal in call %d in %s", call, p)
 	if *triage == nil {
 		*triage = make(map[int]*triageCall)
 	}
@@ -311,7 +304,6 @@ func (fuzzer *Fuzzer) genFuzz() *queue.Request {
 }
 
 func (fuzzer *Fuzzer) startJob(stat *stat.Val, newJob job) {
-	fuzzer.Logf(0, "started %T", newJob)
 	go func() {
 		stat.Add(1)
 		defer stat.Add(-1)

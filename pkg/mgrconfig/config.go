@@ -271,6 +271,10 @@ type Experimental struct {
 
 	// Enable dynamic discovery and fuzzing of KFuzzTest targets.
 	EnableKFuzzTest bool `json:"enable_kfuzztest"`
+
+	// Number of attempts to delay VM-avoidance requests before allowing a violation.
+	// 0 means the default value (1000).
+	DistributorDelayViolation uint64 `json:"distributor_delay_violation"`
 }
 
 type FocusArea struct {

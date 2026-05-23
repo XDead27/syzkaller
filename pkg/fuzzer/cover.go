@@ -6,8 +6,6 @@ package fuzzer
 import (
 	"sync"
 
-	"github.com/google/syzkaller/pkg/log"
-
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/stat"
 )
@@ -31,10 +29,8 @@ func (cover *Cover) addRawMaxSignal(signal []uint64, prio uint8) signal.Signal {
 	defer cover.mu.Unlock()
 	diff := cover.maxSignal.DiffRaw(signal, prio)
 	if diff.Empty() {
-		log.Logf(0, "triage: addRawMaxSignal signal=%d prio=%d diff=0", len(signal), prio)
 		return diff
 	}
-	log.Logf(0, "triage: addRawMaxSignal signal=%d prio=%d diff=%d", len(signal), prio, len(diff))
 	cover.maxSignal.Merge(diff)
 	cover.newSignal.Merge(diff)
 	return diff

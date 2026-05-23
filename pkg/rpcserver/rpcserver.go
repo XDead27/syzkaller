@@ -47,11 +47,12 @@ type Config struct {
 	FilterSignal      bool
 	PrintMachineCheck bool
 	// Abort early on syz-executor not replying to requests and print extra debugging information.
-	DebugTimeouts bool
-	Procs         int
-	Slowdown      int
-	pcBase        uint64
-	localModules  []*vminfo.KernelModule
+	DebugTimeouts             bool
+	Procs                     int
+	Slowdown                  int
+	DistributorDelayViolation uint64
+	pcBase                    uint64
+	localModules              []*vminfo.KernelModule
 
 	// RPCServer closes the channel once the machine check has begun. Used for fault injection during testing.
 	machineCheckStarted chan struct{}
@@ -201,12 +202,13 @@ func New(cfg *RemoteConfig) (Server, error) {
 		// gVisor coverage is not a trace, so producing edges won't work.
 		UseCoverEdges: cfg.Experimental.CoverEdges && cfg.Type != targets.GVisor,
 		// gVisor/Starnix are not Linux, so filtering against Linux ranges won't work.
-		FilterSignal:      cfg.Type != targets.GVisor && cfg.Type != targets.Starnix,
-		PrintMachineCheck: true,
-		Procs:             cfg.Procs,
-		Slowdown:          cfg.Timeouts.Slowdown,
-		pcBase:            pcBase,
-		localModules:      cfg.LocalModules,
+		FilterSignal:              cfg.Type != targets.GVisor && cfg.Type != targets.Starnix,
+		PrintMachineCheck:         true,
+		Procs:                     cfg.Procs,
+		Slowdown:                  cfg.Timeouts.Slowdown,
+		pcBase:                    pcBase,
+		localModules:              cfg.LocalModules,
+		DistributorDelayViolation: cfg.Experimental.DistributorDelayViolation,
 	}, cfg.Manager), nil
 }
 
@@ -225,7 +227,7 @@ func newImpl(cfg *Config, mgr Manager) *server {
 		runners:     make(map[int]*Runner),
 		checker:     checker,
 		baseSource:  baseSource,
-		execSource:  queue.Distribute(queue.Retry(baseSource)),
+		execSource:  queue.Distribute(queue.Retry(baseSource), cfg.DistributorDelayViolation),
 		onHandshake: make(chan *handshakeResult, 1),
 
 		Stats: cfg.Stats,

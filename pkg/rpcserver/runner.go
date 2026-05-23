@@ -179,6 +179,7 @@ func (runner *Runner) ConnectionLoop() error {
 			if req == nil {
 				break
 			}
+
 			if err := runner.sendRequest(req); err != nil {
 				return err
 			}

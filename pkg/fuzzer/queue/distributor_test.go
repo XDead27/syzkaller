@@ -11,7 +11,7 @@ import (
 
 func TestDistributor(t *testing.T) {
 	q := Plain()
-	dist := Distribute(q)
+	dist := Distribute(q, 0)
 
 	req := &Request{}
 	q.Submit(req)

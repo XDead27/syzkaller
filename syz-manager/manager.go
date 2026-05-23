@@ -1266,7 +1266,7 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 		source := queue.DefaultOpts(fuzzerObj, opts)
 		if mgr.cfg.Snapshot {
 			log.Logf(0, "restarting VMs for snapshot mode")
-			mgr.snapshotSource = queue.Distribute(source)
+			mgr.snapshotSource = queue.Distribute(source, mgr.cfg.Experimental.DistributorDelayViolation)
 			mgr.pool.SetDefault(mgr.snapshotInstance)
 			mgr.serv.Close()
 			mgr.serv = nil

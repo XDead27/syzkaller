@@ -136,10 +136,27 @@ public:
 	{
 		if (state_ != State::Started && state_ != State::Idle)
 			return false;
-		if (((~msg.avoid) & proc_id_pool_.Mask()) == 0)
+		if (((~msg.avoid) & proc_id_pool_.Mask()) == 0) {
+			if (msg.avoid)
+				debug("proc %d: clearing avoid mask 0x%llx (pool=0x%llx) for request %llu\n",
+				      id_, static_cast<unsigned long long>(msg.avoid),
+				      static_cast<unsigned long long>(proc_id_pool_.Mask()),
+				      static_cast<unsigned long long>(msg.id));
 			msg.avoid = 0;
-		if (msg.avoid & (1ull << id_))
+		}
+		if (msg.avoid & (1ull << id_)) {
+			debug("proc %d: refusing request %llu due to avoid mask 0x%llx (pool=0x%llx)\n",
+			      id_, static_cast<unsigned long long>(msg.id),
+			      static_cast<unsigned long long>(msg.avoid),
+			      static_cast<unsigned long long>(proc_id_pool_.Mask()));
 			return false;
+		}
+		if (msg.avoid) {
+			debug("proc %d: accepting request %llu with avoid mask 0x%llx\n",
+			      id_, static_cast<unsigned long long>(msg.id),
+			      static_cast<unsigned long long>(msg.avoid));
+		}
+
 		if (msg_)
 			fail("already have pending msg");
 		if (wait_start_)
@@ -149,8 +166,10 @@ public:
 		constexpr uint64 kRestartEvery = 600;
 		if (state_ == State::Idle && ((corpus_triaged_ && restarting_ == 0 && freshness_ >= kRestartEvery) ||
 					      req_type_ != msg.type ||
-					      exec_env_ != msg.exec_opts->env_flags() || sandbox_arg_ != msg.exec_opts->sandbox_arg()))
+					      exec_env_ != msg.exec_opts->env_flags() || sandbox_arg_ != msg.exec_opts->sandbox_arg())) {
+			debug("proc %d: restarting due to freshness or request type/env change, current state %u attempts %llu\n", id_, state_, attempts_);
 			Restart();
+		}
 		attempts_ = 0;
 		msg_ = std::move(msg);
 		if (state_ == State::Started)
@@ -183,6 +202,7 @@ public:
 			if (state_ == State::Handshaking)
 				timeout = 60 * 1000 * opts_.slowdown;
 			if (now > exec_start_ + timeout) {
+				debug("proc %d: timeout expired, restarting subprocess, current state %u attempts %llu\n", id_, state_, attempts_);
 				Restart();
 				return;
 			}
@@ -197,6 +217,7 @@ public:
 #endif
 		}
 		if (select.Ready(resp_pipe_) && !ReadResponse(out_of_requests)) {
+			debug("proc %d: response pipe read failed, restarting subprocess\n", id_);
 			Restart();
 			return;
 		}
@@ -278,6 +299,11 @@ private:
 		int status = process_->KillAndWait();
 		process_.reset();
 		debug("proc %d: subprocess exit status %d\n", id_, status);
+		// if (status != 0) {
+		// 	debug("proc %d: subprocess exit non-zero, last output follows:\n", id_);
+		// 	const bool has_nl = output_.back() == '\n';
+		// 	debug("%s%s", output_.data(), has_nl ? "" : "\n");
+		// }
 		if (++attempts_ > 20) {
 			while (ReadOutput())
 				;
@@ -484,8 +510,10 @@ private:
 		debug_output_pos_ = 0;
 		ChangeState(State::Idle);
 #if !SYZ_EXECUTOR_USES_FORK_SERVER
-		if (process_)
+		if (process_) {
+			debug("proc %d: process should have exited, but it's still running, restarting subprocess\n", id_);
 			Restart();
+		}
 #endif
 	}
 

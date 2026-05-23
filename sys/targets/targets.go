@@ -533,7 +533,7 @@ var oses = map[string]osCommon{
 		SyscallNumbers:         true,
 		SyscallPrefix:          "__NR_",
 		ExecutorUsesForkServer: false,
-		KernelObject:           "xng.armv7a-vmsa-tz.bin",
+		KernelObject:           "sys_img.elf",
 		BuildOS:                Linux,
 	},
 	Linux: {

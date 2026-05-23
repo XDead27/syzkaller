@@ -13,20 +13,25 @@ import (
 // Distributor distributes requests to different VMs during input triage
 // (allows to avoid already used VMs).
 type Distributor struct {
-	source        Source
-	seq           atomic.Uint64
-	empty         atomic.Bool
-	active        atomic.Pointer[[]atomic.Uint64]
-	mu            sync.Mutex
-	queue         []*Request
-	statDelayed   *stat.Val
-	statUndelayed *stat.Val
-	statViolated  *stat.Val
+	source         Source
+	seq            atomic.Uint64
+	empty          atomic.Bool
+	active         atomic.Pointer[[]atomic.Uint64]
+	mu             sync.Mutex
+	queue          []*Request
+	violationAfter uint64
+	statDelayed    *stat.Val
+	statUndelayed  *stat.Val
+	statViolated   *stat.Val
 }
 
-func Distribute(source Source) *Distributor {
+func Distribute(source Source, violationAfter uint64) *Distributor {
+	if violationAfter == 0 {
+		violationAfter = 1000
+	}
 	return &Distributor{
-		source: source,
+		source:         source,
+		violationAfter: violationAfter,
 		statDelayed: stat.New("distributor delayed", "Number of test programs delayed due to VM avoidance",
 			stat.Graph("distributor")),
 		statUndelayed: stat.New("distributor undelayed", "Number of test programs undelayed for VM avoidance",
@@ -71,9 +76,9 @@ func (dist *Distributor) delayed(vm int) *Request {
 		violation := contains(req.Avoid, vm)
 		// The delayedSince check protects from a situation when we had another VM available,
 		// and delayed a request, but then the VM was taken for reproduction and does not
-		// serve requests any more. If we could not dispatch a request in 1000 attempts,
+		// serve requests any more. If we could not dispatch a request in violationAfter attempts,
 		// we gave up and give it to any VM.
-		if violation && req.delayedSince+1000 > seq {
+		if violation && req.delayedSince+dist.violationAfter > seq {
 			continue
 		}
 		dist.statUndelayed.Add(1)

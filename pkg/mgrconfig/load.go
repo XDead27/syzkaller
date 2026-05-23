@@ -102,9 +102,10 @@ func DefaultValues() *Config {
 		PreserveCorpus: true,
 		RunFsck:        true,
 		Experimental: Experimental{
-			RemoteCover:      true,
-			CoverEdges:       true,
-			DescriptionsMode: manualDescriptions,
+			RemoteCover:                true,
+			CoverEdges:                 true,
+			DescriptionsMode:           manualDescriptions,
+			DistributorDelayViolation: 1000,
 		},
 	}
 }
