@@ -1,6 +1,26 @@
 arches = arm
-O_RDWR = 2
 
+# Partition management
 __NR_XGetMyPartitionId = arm:4
 __NR_XHaltPartition = arm:5
+__NR_XGetPartitionStatus = arm:8
+__NR_XSuspendPartition = arm:9
+__NR_XResumePartition = arm:10
+
+# Clock and timers
+__NR_XGetSystemTime = arm:11
+__NR_XGetExecutionTime = arm:12
+__NR_XSetSystemTimer = arm:13
+__NR_XSetExecutionTimer = arm:14
+
+# Virtual IRQ control
+__NR_XMaskVIrq = arm:31
+__NR_XUnmaskVIrq = arm:32
+__NR_XClearPendingVIrq = arm:34
+__NR_XRaiseVIrq = arm:37
+
+# VCpu management
+__NR_XHaltVCpu = arm:28
+
+# Console
 __NR_XWriteConsole = arm:15

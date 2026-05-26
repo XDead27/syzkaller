@@ -176,6 +176,8 @@ func New(cfg *RemoteConfig) (Server, error) {
 		features &^= flatrpc.FeatureSandboxNamespace
 		features &^= flatrpc.FeatureSandboxSetuid
 		features &^= flatrpc.FeatureSandboxAndroid
+
+		features &^= flatrpc.FeatureComparisons
 	}
 	if !cfg.Experimental.RemoteCover {
 		features &= ^flatrpc.FeatureExtraCoverage

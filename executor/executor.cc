@@ -1504,23 +1504,15 @@ void write_output(int index, cover_t* cov, rpc::CallFlag flags, uint32 error, bo
 	uint32 cover_off = 0;
 	uint32 comps_off = 0;
 	if (flag_comparisons) {
-		// WARN: Debug
-		debug("write_comparisons: size=%u\n", cov->size);
-
 		comps_off = write_comparisons(fbb, cov);
 	} else {
 		if (flag_collect_signal) {
-			// WARN: Debug
-			debug("write_signal: size=%u\n", cov->size);
-
 			if (is_kernel_64_bit)
 				signal_off = write_signal<uint64>(fbb, index, cov, all_signal);
 			else
 				signal_off = write_signal<uint32>(fbb, index, cov, all_signal);
 		}
 		if (flag_collect_cover) {
-			// WARN: Debug
-			debug("write_cover: size=%u\n", cov->size);
 			if (is_kernel_64_bit)
 				cover_off = write_cover<uint64>(fbb, cov);
 			else

@@ -1,9 +1,85 @@
 meta noextract
 meta arches["arm"]
 
-resource xPartitionId[int32]: 0xffffffffffffffff
+# ---- Resources ----
+
+resource xPartitionId[int32]: 0, 1, 0xffffffff
+
+# ---- Type aliases ----
+
+type xVCpuId int32[0:1]
+
+type xVIrq int32[0:255]
+
+# ---- Structs ----
+
+xPartitionStatus {
+	startCondition	int32
+	nbRestarts	int64
+	vCpuState	int32
+	vCpuSchedStatus	xVCpuSchedStatus
+	vCpusState0	int32
+	vCpusState1	int32
+	vCpusSchedStatus0	xVCpuSchedStatus
+	vCpusSchedStatus1	xVCpuSchedStatus
+}
+
+xVCpuSchedStatus {
+	cSlotId		int32
+	cSlotStart	int64
+	cSlotDuration	int64
+	cpuId		int32
+}
+
+# xHmLog {
+# 	timestamp	int64
+# 	event		int32
+# 	partitionId	int32
+# 	vCpuId		int32
+# 	failedAddress	int32
+# 	message		array[int8, 64]
+# 	length		int32
+# }
+# 
+# xHmLogBufferStatus {
+# 	nbHmEventLogs		int32
+# 	nbLostHmEventLogs	int32
+# }
+# 
+# xScheduleStatus {
+# 	timeOfLastScheduleSwitch	int64
+# 	previousSchedule		int32
+# 	currentSchedule			int32
+# 	nextSchedule			int32
+# 	state				int32
+# }
+
+# ---- Partition management ----
 
 XGetMyPartitionId(partitionId ptr[out, xPartitionId])
 XHaltPartition(partitionId xPartitionId)
+XGetPartitionStatus(partitionId xPartitionId, partitionStatus ptr[out, xPartitionStatus])
+XSuspendPartition(partitionId xPartitionId)
+XResumePartition(partitionId xPartitionId)
+
+# ---- Clock and timers ----
+
+XGetSystemTime(systemTime ptr[out, int64])
+XGetExecutionTime(executionTime ptr[out, int64])
+XSetSystemTimer(value intptr, period int32)
+XSetExecutionTimer(value intptr, period int32)
+
+# ---- Virtual IRQ control ----
+
+XMaskVIrq(irq xVIrq)
+XUnmaskVIrq(irq xVIrq)
+XClearPendingVIrq(irq xVIrq)
+XRaiseVIrq(vIrq xVIrq)
+
+# ---- VCpu management ----
+
+XHaltVCpu(vCpuId xVCpuId)
+
+# ---- Console ----
 
 XWriteConsole(buf buffer[in], count len[buf])

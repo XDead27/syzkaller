@@ -216,7 +216,7 @@ var List = map[string]map[string]*Target{
 			},
 			KernelAddresses: KernelAddresses{
 				TextStart: 0x100000,
-				TextEnd:   0x200000,
+				TextEnd:   0x4000000,
 			},
 		},
 	},
@@ -533,7 +533,7 @@ var oses = map[string]osCommon{
 		SyscallNumbers:         true,
 		SyscallPrefix:          "__NR_",
 		ExecutorUsesForkServer: false,
-		KernelObject:           "sys_img.elf",
+		KernelObject:           "xng_text.elf",
 		BuildOS:                Linux,
 	},
 	Linux: {
