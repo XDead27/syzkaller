@@ -82,4 +82,4 @@ XHaltVCpu(vCpuId xVCpuId)
 
 # ---- Console ----
 
-XWriteConsole(buf buffer[in], count len[buf])
+# XWriteConsole(buf buffer[in], count len[buf])

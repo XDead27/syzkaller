@@ -231,6 +231,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 	prio := signalPrio(p, info, call)
 	newMaxSignal := fuzzer.Cover.addRawMaxSignal(info.Signal, prio)
 	if newMaxSignal.Empty() {
+		fuzzer.Logf(0, "no new signal for call %v (errno %v)", p.CallName(call), info.Error)
 		return
 	}
 	if !fuzzer.Config.NewInputFilter(p.CallName(call)) {
@@ -239,6 +240,7 @@ func (fuzzer *Fuzzer) triageProgCall(p *prog.Prog, info *flatrpc.CallInfo, call 
 	if *triage == nil {
 		*triage = make(map[int]*triageCall)
 	}
+	fuzzer.Logf(0, "new signal for call %v (errno %v): %v", p.CallName(call), info.Error, newMaxSignal)
 	(*triage)[call] = &triageCall{
 		errno:     info.Error,
 		newSignal: newMaxSignal,
