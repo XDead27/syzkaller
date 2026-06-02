@@ -20,7 +20,23 @@ __NR_XClearPendingVIrq = arm:34
 __NR_XRaiseVIrq = arm:37
 
 # VCpu management
+__NR_XResetVCpu = arm:27
 __NR_XHaltVCpu = arm:28
+__NR_XSuspendVCpu = arm:29
+__NR_XResumeVCpu = arm:30
+
+# Schedule management
+__NR_XGetScheduleId = arm:16
+__NR_XGetScheduleStatus = arm:17
+__NR_XSetSchedule = arm:18
+__NR_XSetScheduleNow = arm:19
+
+# Partition management
+__NR_XGetPartitionId = arm:7
+__NR_XResetPartition = arm:6
+
+# Virtual IRQ control
+__NR_XIsVIrqPending = arm:33
 
 # Console
 __NR_XWriteConsole = arm:15

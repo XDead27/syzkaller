@@ -11,6 +11,26 @@ type xVCpuId int32[0:1]
 
 type xVIrq int32[0:255]
 
+type xScheduleId int32
+
+type xPartitionResetMode int32
+
+type xMemAddr intptr
+
+type xString array[int8, 16]
+
+type xBool int8
+
+# ---- Structs ----
+
+xScheduleStatus {
+	timeOfLastScheduleSwitch	int64
+	previousSchedule		int32
+	currentSchedule			int32
+	nextSchedule			int32
+	state				int32
+}
+
 # ---- Structs ----
 
 xPartitionStatus {
@@ -57,6 +77,8 @@ xVCpuSchedStatus {
 # ---- Partition management ----
 
 XGetMyPartitionId(partitionId ptr[out, xPartitionId])
+XGetPartitionId(partitionName ptr[in, xString], partitionId ptr[out, xPartitionId])
+XResetPartition(partitionId xPartitionId, entryPoint xMemAddr, mode xPartitionResetMode)
 XHaltPartition(partitionId xPartitionId)
 XGetPartitionStatus(partitionId xPartitionId, partitionStatus ptr[out, xPartitionStatus])
 XSuspendPartition(partitionId xPartitionId)
@@ -73,12 +95,23 @@ XSetExecutionTimer(value intptr, period int32)
 
 XMaskVIrq(irq xVIrq)
 XUnmaskVIrq(irq xVIrq)
+XIsVIrqPending(irq xVIrq, isPending ptr[out, xBool])
 XClearPendingVIrq(irq xVIrq)
 XRaiseVIrq(vIrq xVIrq)
 
 # ---- VCpu management ----
 
+XResetVCpu(vCpuId xVCpuId, entryPoint xMemAddr)
 XHaltVCpu(vCpuId xVCpuId)
+XSuspendVCpu(vCpuId xVCpuId)
+XResumeVCpu(vCpuId xVCpuId)
+
+# ---- Schedule management ----
+
+XGetScheduleId(scheduleName ptr[in, xString], scheduleId ptr[out, xScheduleId])
+XGetScheduleStatus(status ptr[out, xScheduleStatus])
+XSetSchedule(scheduleId xScheduleId)
+XSetScheduleNow(scheduleId xScheduleId)
 
 # ---- Console ----
 
