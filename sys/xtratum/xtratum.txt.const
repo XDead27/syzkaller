@@ -2,9 +2,9 @@ arches = arm
 
 # Partition management
 __NR_XGetMyPartitionId = arm:4
-__NR_XHaltPartition = arm:5
+# __NR_XHaltPartition = arm:5
 __NR_XGetPartitionStatus = arm:8
-__NR_XSuspendPartition = arm:9
+# __NR_XSuspendPartition = arm:9
 __NR_XResumePartition = arm:10
 
 # Clock and timers
@@ -20,9 +20,9 @@ __NR_XClearPendingVIrq = arm:34
 __NR_XRaiseVIrq = arm:37
 
 # VCpu management
-__NR_XResetVCpu = arm:27
-__NR_XHaltVCpu = arm:28
-__NR_XSuspendVCpu = arm:29
+# __NR_XResetVCpu = arm:27
+# __NR_XHaltVCpu = arm:28
+# __NR_XSuspendVCpu = arm:29
 __NR_XResumeVCpu = arm:30
 
 # Schedule management
@@ -33,7 +33,7 @@ __NR_XSetScheduleNow = arm:19
 
 # Partition management
 __NR_XGetPartitionId = arm:7
-__NR_XResetPartition = arm:6
+# __NR_XResetPartition = arm:6
 
 # Virtual IRQ control
 __NR_XIsVIrqPending = arm:33
