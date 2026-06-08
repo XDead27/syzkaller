@@ -4,6 +4,15 @@ meta arches["arm"]
 # ---- Resources ----
 
 resource xPartitionId[int32]: 0, 1, 0xffffffff
+resource xQueuingPortId[int32]: 0, 1, 0xffffffff
+resource xSamplingPortId[int32]: 0, 1, 0xffffffff
+
+# xcfMemoryArea_struct {
+# 	start	int32
+# 	size	int32
+# 	attributes	int32
+# }
+# resource xMemoryArea[xcfMemoryArea_struct]
 
 # ---- Type aliases ----
 
@@ -20,6 +29,15 @@ type xScheduleId int32
 type xString array[int8, 16]
 
 type xBool int8
+
+type xSize int32
+type xRange int32
+type xPortDirection int32[0:1]
+
+type xValidity int32[0:1]
+
+type xIoPort int32
+type xIoPortAddr int32
 
 # ---- Structs ----
 
@@ -49,6 +67,17 @@ xVCpuSchedStatus {
 	cSlotStart	int64
 	cSlotDuration	int64
 	cpuId		int32
+}
+
+xQueuingPortStatus {
+	nbMessages	int32
+}
+
+xSamplingPortStatus {
+	refreshPeriod			int32
+	lastMessageTimestamp	int32
+	lastMessageSize			int32
+	lastMessageValidity		xValidity
 }
 
 # xHmLog {
@@ -116,3 +145,30 @@ XSetScheduleNow(scheduleId xScheduleId)
 # ---- Console ----
 
 XWriteConsole(buf buffer[in], count len[buf])
+
+# ---- Queuing ports ----
+
+XCreateQueuingPort(name ptr[in, xString], maxMessageSize xSize, maxNbMessages xRange, portDirection xPortDirection, queuingPortId ptr[out, xQueuingPortId])
+XReceiveQueuingMessage(queuingPortId xQueuingPortId, buf buffer[out], count len[buf])
+XSendQueuingMessage(queuingPortId xQueuingPortId, buf buffer[in], count len[buf])
+XGetQueuingPortId(name ptr[in, xString], queuingPortId ptr[out, xQueuingPortId])
+XGetQueuingPortStatus(queuingPortId xQueuingPortId, status ptr[out, xQueuingPortStatus])
+XClearQueuingPort(queuingPortId xQueuingPortId)
+
+# ---- Sampling ports ----
+
+XCreateSamplingPort(name ptr[in, xString], maxMessageSize xSize, portDirection xPortDirection, refreshPeriod int32, samplingPortId ptr[out, xSamplingPortId])
+XReadSamplingMessage(samplingPortId xSamplingPortId, buf buffer[out], count len[buf], validity xValidity)
+XWriteSamplingMessage(samplingPortId xSamplingPortId, buf buffer[in], count len[buf])
+XGetSamplingPortId(name ptr[in, xString], samplingPortId ptr[out, xSamplingPortId])
+XGetSamplingPortStatus(samplingPortId xSamplingPortId, status ptr[out, xSamplingPortStatus])
+
+# ---- IPVI ----
+XSendIpvi(ipviName ptr[in, xString])
+
+# ---- IO port ----
+XInPort(addr xIoPortAddr, value ptr[out, xIoPort])
+XOutPort(addr xIoPortAddr, value xIoPort)
+
+# ---- System configuration ----
+# XGetMyMemoryAreasCfg(memoryAreas ptr[out, xMemoryArea]

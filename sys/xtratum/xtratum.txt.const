@@ -40,3 +40,25 @@ __NR_XIsVIrqPending = arm:33
 
 # Console
 __NR_XWriteConsole = arm:15
+
+# Queuing port
+__NR_XCreateQueuingPort = arm:46
+__NR_XReceiveQueuingMessage = arm:47
+__NR_XSendQueuingMessage = arm:48
+__NR_XGetQueuingPortId = arm:49
+__NR_XGetQueuingPortStatus = arm:50
+__NR_XClearQueuingPort = arm:51
+
+# Sampling port
+__NR_XCreateSamplingPort = arm:41
+__NR_XReadSamplingMessage = arm:42
+__NR_XWriteSamplingMessage = arm:43
+__NR_XGetSamplingPortId = arm:44
+__NR_XGetSamplingPortStatus = arm:45
+
+# IPVI
+__NR_XSendIpvi = arm:62
+
+# IO port
+__NR_XInPort = arm:39
+__NR_XOutPort = arm:40
