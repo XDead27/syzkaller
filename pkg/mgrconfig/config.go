@@ -238,6 +238,12 @@ type Config struct {
 	// MemoryDump enables feature to dump memory of the target VM on crash.
 	MemoryDump bool `json:"memory_dump"`
 
+	// Fixed RNG seed for deterministic program generation and mutation.
+	// When set to a non-zero value, the fuzzer uses this seed instead of the current time,
+	// producing the same sequence of generated/mutated programs across runs with identical configs.
+	// Useful for reproducible research comparisons. Zero (default) means non-deterministic.
+	FuzzSeed int64 `json:"fuzz_seed,omitempty"`
+
 	// Experimental options.
 	Experimental Experimental
 

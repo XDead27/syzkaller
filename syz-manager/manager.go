@@ -1226,7 +1226,11 @@ func (mgr *Manager) MachineChecked(features flatrpc.Feature,
 			corpusUpdates, mgr.coverFilters.Areas)
 		mgr.http.Corpus.Store(mgr.corpus)
 
-		rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+		fuzzSeed := mgr.cfg.FuzzSeed
+		if fuzzSeed == 0 {
+			fuzzSeed = time.Now().UnixNano()
+		}
+		rnd := rand.New(rand.NewSource(fuzzSeed))
 		fuzzerObj := fuzzer.NewFuzzer(context.Background(), &fuzzer.Config{
 			Corpus:         mgr.corpus,
 			Snapshot:       mgr.cfg.Snapshot,
