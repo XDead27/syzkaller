@@ -5,8 +5,11 @@
 #define SUT_BACKEND_REMOTE_H
 
 #include <cerrno>
+#include <chrono>
 #include <errno.h>
+#include <iomanip>
 #include <poll.h>
+#include <sstream>
 #include <stdint.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -23,6 +26,33 @@
 #include <netdb.h>
 
 #include "sut_backend.h"
+
+std::string timestamp_now()
+{
+	using namespace std::chrono;
+
+	auto now = system_clock::now();
+
+	// Split into seconds + milliseconds
+	auto ms = duration_cast<milliseconds>(
+		      now.time_since_epoch()) %
+		  1000;
+
+	auto tt = system_clock::to_time_t(now);
+
+	std::tm tm{};
+	localtime_r(&tt, &tm); // local timezone (POSIX)
+
+	std::ostringstream oss;
+
+	oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S")
+	    << '.'
+	    << std::setw(3)
+	    << std::setfill('0')
+	    << ms.count();
+
+	return oss.str();
+}
 
 class JsonRpcTcpClient
 {
@@ -127,13 +157,13 @@ public:
 			debug("[Executor] Failed to send request to SUT backend at %s\n", endpoint_.c_str());
 			return false;
 		}
-		debug("[Executor] >>> %s\n", req.c_str());
+		debug("[%s] [%s] >>> %s\n", method, timestamp_now().c_str(), req.c_str());
 
 		std::string resp;
 		if (!RecvJsonObject(&resp)) {
 			return false;
 		}
-		debug("[Executor] <<< %s\n", resp.c_str());
+		debug("[%s] [%s] <<< %s\n", method, timestamp_now().c_str(), resp.c_str());
 
 		return ParseResponse(resp, request_id, result_json);
 	}

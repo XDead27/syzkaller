@@ -563,7 +563,7 @@ private:
 			return false;
 		}
 		if (flag_debug) {
-			const bool has_nl = output_.back() == '\n';
+			// const bool has_nl = output_.back() == '\n';
 			output_.resize(output_.size() + 1);
 			char* output = reinterpret_cast<char*>(output_.data()) + debug_output_pos_;
 			// During machine check we can execute some requests that legitimately fail.
@@ -575,7 +575,8 @@ private:
 				if (syzfail)
 					memcpy(syzfail, "NOTFAIL", strlen("NOTFAIL"));
 			}
-			debug("proc %d: got output: %s%s", id_, output, has_nl ? "" : "\n");
+			// debug("proc %d: got output: %s%s", id_, output, has_nl ? "" : "\n");
+			debug("%s", output);
 			output_.resize(output_.size() - 1);
 			debug_output_pos_ = output_.size();
 		}

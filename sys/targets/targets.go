@@ -210,8 +210,8 @@ var List = map[string]map[string]*Target{
 				ExecutorUsesForkServer: false,
 			},
 			timeouts: Timeouts{
-				Syscall:  5 * time.Second,
-				Program:  150 * time.Second,
+				Syscall:  20 * time.Second,
+				Program:  5 * time.Minute,
 				NoOutput: 5 * time.Minute,
 			},
 			KernelAddresses: KernelAddresses{
